@@ -162,4 +162,90 @@ def verify(log: bool = True) -> list[dict]:
     if log:
         summary = {r["evidence_file"]: r["status"] for r in results}
         log_custody("EVIDENCE_VERIFIED", {"results": summary})
+        # If any mismatches found, log explicit high-priority audit alerts
+        mismatches = [r for r in results if r["status"] != "OK"]
+        for m in mismatches:
+            log_custody("TAMPER_ALERT", {
+                "evidence_file": m["evidence_file"],
+                "source": m["source_label"],
+                "expected_sha256": m["expected_sha256"],
+                "actual_sha256": m["actual_sha256"],
+                "status": m["status"],
+                "alert": "CRITICAL: Hash mismatch detected on disk! Evidence has been altered."
+            })
     return results
+
+
+def restore_evidence(target_file: str = None) -> dict:
+    """Restores pristine content to tampered evidence copy and re-verifies."""
+    manifest = load_manifest()
+    restored = []
+
+    for entry in manifest:
+        if target_file and entry["evidence_file"] != target_file and entry["source_label"] != target_file:
+            continue
+
+        path = evidence_path(entry)
+        expected_hash = entry["sha256"]
+
+        # Check if missing or altered
+        if not path.exists() or sha256_file(path) != expected_hash:
+            orig_path = Path(entry.get("original_path", ""))
+            restored_ok = False
+
+            # 1. Try original_path
+            if orig_path.exists() and sha256_file(orig_path) == expected_hash:
+                if path.exists():
+                    os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+                shutil.copy2(orig_path, path)
+                os.chmod(path, stat.S_IREAD)
+                restored_ok = True
+
+            # 2. Try candidate directories
+            if not restored_ok:
+                source_name = Path(entry["source_label"]).name
+                candidate_dirs = [
+                    config.BASE_DIR / "SAMPLE_LOGS_READY_TO_USE",
+                    config.SAMPLE_LOGS_DIR,
+                    config.BASE_DIR / "uploads"
+                ]
+                for cdir in candidate_dirs:
+                    if not cdir.exists():
+                        continue
+                    for cand in cdir.rglob(source_name):
+                        if cand.is_file() and sha256_file(cand) == expected_hash:
+                            if path.exists():
+                                os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+                            shutil.copy2(cand, path)
+                            os.chmod(path, stat.S_IREAD)
+                            restored_ok = True
+                            break
+                    if restored_ok:
+                        break
+
+            # 3. Strip injected tamper line if present
+            if not restored_ok and path.exists():
+                os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+                lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+                clean_lines = [l for l in lines if "# TAMPERED LINE INJECTED" not in l]
+                path.write_text("\n".join(clean_lines) + ("\n" if lines else ""), encoding="utf-8")
+                os.chmod(path, stat.S_IREAD)
+                if sha256_file(path) == expected_hash:
+                    restored_ok = True
+
+            if restored_ok:
+                restored.append(entry["evidence_file"])
+                log_custody("EVIDENCE_RESTORED", {
+                    "source": entry["source_label"],
+                    "evidence_file": entry["evidence_file"],
+                    "sha256": expected_hash,
+                    "note": "Restored pristine copy from master archive and re-applied cryptographic protection"
+                })
+
+    checks = verify(log=True)
+    all_ok = bool(checks and all(c["status"] == "OK" for c in checks))
+    return {
+        "restored": restored,
+        "all_ok": all_ok,
+        "checks": checks
+    }

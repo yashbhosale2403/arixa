@@ -193,9 +193,15 @@ def clock_comparison(scenario: str = "scenario3_multi_timezone") -> dict:
         label = evidence.source_label(path)
         host = path.stem.split("_")[0]
         has_offset = "access" in path.stem
+        zone_str = settings.get("timezone", "UTC")
+        if has_offset:
+            m_off = re.search(r"\[\d{2}/[A-Za-z]{3}/\d{4}:\d{2}:\d{2}:\d{2}\s+([+-]\d{4})\]", path.read_text(encoding="utf-8", errors="replace")[:500])
+            offset_val = m_off.group(1) if m_off else "+0100"
+            zone_desc = f"offset written in each line ({offset_val} BST)" if offset_val == "+0100" else f"offset written in each line ({offset_val})"
+            zone_str = zone_desc
         sources.append({
             "file": label, "host": host,
-            "zone": "offset written in each line (+0530)" if has_offset else settings["timezone"],
+            "zone": zone_str,
             "skew": settings.get("skew_seconds", 0),
         })
         for line in path.read_text(encoding="utf-8", errors="replace").splitlines():

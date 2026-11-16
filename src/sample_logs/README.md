@@ -22,19 +22,19 @@ meant to trigger detection.
 (HIGH, T1190), web shell (CRITICAL, T1505.003). Gaps: an IIS-format line, a truncated line.
 
 ## 3. Multi-time-zone correlated breach - `scenario3_multi_timezone/`
-* `web01_access.log` - web server in India, offsets `+0530`.
-* `db01_auth.log` - database server in New York (no offset in the file; configured
-  as `America/New_York`, which is UTC-4 in October), and **its clock was 3 minutes slow**
+* `web01_access.log` - web server in London, UK (`Europe/London`), offsets `+0100` (BST, British Summer Time).
+* `db01_auth.log` - database server in New York (`America/New_York`, which is UTC-4 in October / EDT), and **its clock was 3 minutes slow**
   (`skew_seconds: 180` in `config.py`).
 
 | What | Local time in log | UTC without skew fix | UTC with skew fix |
 |---|---|---|---|
-| Web shell `avatar.php?cmd=id` on web01 | 14:02:10 +0530 | 08:32:10 | 08:32:10 |
-| `dbadmin` SSH login to db01 from web01 (`10.0.0.15`) | 04:30:05 | **08:30:05** (looks *before* the shell) | **08:33:05** (55 s *after* the shell) |
-| `sudo pg_dump customers` on db01 | 04:31:20 | 08:31:20 | 08:34:20 |
+| Web shell `avatar.php?cmd=id` on web01 | 09:32:10 +0100 | 08:32:10 | 08:32:10 |
+| Web shell `avatar.php?cmd=cat config.ini` | 09:32:40 +0100 | 08:32:40 | 08:32:40 |
+| `dbadmin` SSH login to db01 from web01 (`10.0.0.15`) | 04:30:05 (EDT) | **08:30:05** (looks *before* the shell) | **08:33:05** (25 s *after* the shell) |
+| `sudo pg_dump customers` on db01 | 04:31:20 (EDT) | 08:31:20 | 08:34:20 |
 
-Sorting the raw local times puts the DB events (04:30) hours before the web events
-(14:02). Converting to UTC brings them together, and only the skew correction puts
+Sorting the raw local times puts the DB events (04:30 EDT) hours before the web events
+(09:32 BST). Converting to UTC brings them together, and only the skew correction puts
 them in the true order: web shell → pivot to the database → data dump.
 **Expected:** web shell (CRITICAL) → lateral movement (HIGH, T1021.004) →
 privilege use on db01 (HIGH, T1548). Set `skew_seconds` to `0` and re-run the demo

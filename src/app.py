@@ -1238,7 +1238,6 @@ if NAV == "ai":
         html_block(f'<div class="note">{esc(ai_msg)}. Everything else works without AI. To enable it, '
                    'copy <code>.env.example</code> to <code>.env</code> and add a Gemini API key.</div>')
     else:
-        html_block(f'<div class="ailabel">{esc(ai_msg)} &middot; {esc(report.AI_LABEL)}</div>')
         s1, s2, s3 = st.tabs([":material/auto_stories: Explain the incident",
                               ":material/forum: Ask in plain English",
                               ":material/build: Parsing-gap helper"])

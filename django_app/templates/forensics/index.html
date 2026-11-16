@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARIXA Forensic Timeline | Incident Console</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <!-- Offline Libraries for Charting, Graphviz, and Interactive Canvas -->
+  <script src="{% static 'js/chart.min.js' %}"></script>
+  <script src="{% static 'js/vis-network.min.js' %}"></script>
+  <script src="{% static 'js/viz.js' %}"></script>
+  <script src="{% static 'js/full.render.js' %}"></script>
+</head>
+<body>
+
+{% if not has_data %}
+<!-- =========================================================================
+     HERO STARTING / UPLOAD PAGE (Clean, Centered, Before Upload or After Wiping)
+     ========================================================================= -->
+<div class="hero-page-wrapper">
+  <!-- Top Header -->
+  <header class="hero-header">
+    <div class="brand">
+      <div class="logo">AR</div>
+      <div>
+        <div class="title">ARIXA Forensic Timeline</div>
+        <div class="subtitle">Digital Forensics &amp; Incident Response &middot; AIORI PS-013</div>
+      </div>
+    </div>
+    <div>
+      <button id="theme-toggle" class="btn btn-secondary" style="font-size:0.8rem">
+        &#9728;&#65039; Light mode
+      </button>
+    </div>
+  </header>
+
+  <!-- Hero Center Content -->
+  <div class="hero-main-content">
+    <!-- Centered Hero Intro -->
+    <div class="hero-intro">
+      <div class="hero-badge">Incident Response Console</div>
+      <h1 class="hero-title">Forensic Timeline Reconstruction</h1>
+      <p class="hero-desc">
+        Cryptographic SHA-256 evidence protection, UTC normalisation with DST &amp; clock-drift correction, and 8 automated MITRE ATT&amp;CK detection rules for small teams.
+      </p>
+      <div class="hero-feature-pills">
+        <span class="chip ok">&#10004; SHA-256 Chain of Custody</span>
+        <span class="chip">&#128337; Automatic UTC &amp; Clock Skew Fix</span>
+        <span class="chip ai">&#10022; 8 MITRE ATT&amp;CK Detections</span>
+        <span class="chip">&#128737;&#65039; 100% Defensive &amp; Read-Only</span>
+      </div>
+    </div>
+
+    <!-- Centered Upload Card (The Left-Side Thing in the Center) -->
+    <div class="card hero-upload-card">
+      <div style="font-weight:700;font-size:1.15rem;margin-bottom:4px;color:var(--text)">
+        Upload Server Logs to Begin Investigation
+      </div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:16px">
+        Drop your log files below or test with ready-made forensic scenarios.
+      </div>
+
+      <form id="upload-form" class="upload-form" enctype="multipart/form-data">
+        <div class="dropzone hero-dropzone" id="upload-dropzone">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <div class="dropzone-text" style="font-size:0.92rem;font-weight:600;margin-top:6px">
+            Drag &amp; drop log files here or click to browse
+          </div>
+          <div style="font-size:0.75rem;color:var(--muted);margin-top:2px">
+            Supports Linux auth.log, Apache/Nginx access.log, syslog, .log, .txt
+          </div>
+          <input type="file" id="file-input" name="files" multiple style="display:none">
+        </div>
+
+        <!-- Selected files container -->
+        <div id="selected-files-list" style="margin-top:10px;display:none;flex-direction:column;gap:6px"></div>
+
+        <!-- Configuration Grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+          <div>
+            <label class="section" style="display:block;margin-bottom:4px">Server Time Zone</label>
+            <select name="timezone" class="select" id="upload-tz">
+              {% for tz in timezones %}
+                <option value="{{ tz }}" {% if tz == "Asia/Kolkata" %}selected{% endif %}>{{ tz }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="section" style="display:block;margin-bottom:4px">Clock Skew (seconds)</label>
+            <input type="number" name="skew_seconds" class="input" value="0" step="1">
+            <div class="hint">Positive if server clock ran slow (+180 = 3m slow)</div>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-analyse" class="btn btn-primary btn-full" style="margin-top:16px;padding:12px;font-size:0.95rem">
+          &#9889; Ingest &amp; Reconstruct Incident Timeline
+        </button>
+      </form>
+    </div>
+
+    <!-- Quick Preset Scenarios Grid -->
+    <div style="margin-top:28px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="section" style="margin:0;font-size:0.82rem">Or explore ready-to-use sample incident scenarios:</div>
+        <span style="font-size:0.74rem;color:var(--muted)">1-click instant demo</span>
+      </div>
+
+      <div class="hero-scenarios-grid">
+        <!-- Card 1: SSH Brute Force -->
+        <div class="hero-scenario-card" onclick="loadScenario('ssh')">
+          <div class="h-top"><span class="badge-icon">&#127470;&#127475;</span> <b>01. SSH Brute Force Takeover (Mumbai, India)</b></div>
+          <div class="h-desc">Mumbai bastion server attacked: 15 failed SSH attempts on root/admin, deploy password cracked, /etc/shadow dumped, backdoor account created.</div>
+          <div class="h-meta"><span class="sev sev-critical">CRITICAL</span> &bull; Mumbai, India &bull; Asia/Kolkata (IST +05:30) &bull; 5 MITRE alerts</div>
+        </div>
+
+        <!-- Card 2: Web Scan & Web Shell -->
+        <div class="hero-scenario-card" onclick="loadScenario('web')">
+          <div class="h-top"><span class="badge-icon">&#127470;&#127475;</span> <b>02. Web Scan &amp; Web Shell Attack (Bengaluru, India)</b></div>
+          <div class="h-desc">Bengaluru production web server: 14 missing pages 404 scan, SQL injection, path traversal, and malicious PHP webshell execution.</div>
+          <div class="h-meta"><span class="sev sev-high">HIGH</span> &bull; Bengaluru, India &bull; Asia/Kolkata (IST +05:30) &bull; 5 MITRE alerts</div>
+        </div>
+
+        <!-- Card 3: Multi-Zone & Clock Skew -->
+        <div class="hero-scenario-card" onclick="loadScenario('multi')">
+          <div class="h-top"><span class="badge-icon">&#127468;&#127463; &#127482;&#127480;</span> <b>03. Multi-Zone &amp; Clock Skew Pivot (London + New York)</b></div>
+          <div class="h-desc">London (BST +01:00) web shell pivot to New York (EDT -04:00) database with 3-minute clock drift. Demonstrates real-world cross-country timeline alignment.</div>
+          <div class="h-meta"><span class="sev sev-high">HIGH</span> &bull; London, UK &amp; New York, USA &bull; Clock Skew: +180s</div>
+        </div>
+
+        <!-- Card 4: Full Enterprise Morning -->
+        <div class="hero-scenario-card" onclick="loadScenario('all')">
+          <div class="h-top"><span class="badge-icon">&#127760;</span> <b>Full Global Enterprise Attack Chain (India &middot; UK &middot; USA)</b></div>
+          <div class="h-desc">Cross-region incident correlation combining normal morning corporate traffic with 3 simultaneous cyber attacks across international datacenters.</div>
+          <div class="h-meta"><span class="sev sev-critical">16 ALERTS</span> &bull; Global Multi-Region &bull; Full Kill Chain</div>
+        </div>
+
+        <!-- Card 5: Clean Logs -->
+        <div class="hero-scenario-card" onclick="loadScenario('clean')">
+          <div class="h-top"><span class="badge-icon">&#127470;&#127475;</span> <b>08. Normal Traffic (Mumbai HQ &middot; 0 False Positives)</b></div>
+          <div class="h-desc">Clean everyday corporate traffic from Mumbai HQ (sysadmin SSH keys, routine cron jobs, uptime checks). Verifies 0 false alarms.</div>
+          <div class="h-meta" style="color:var(--ok-fg)"><span class="rule ok">&#10004; 0 Alerts</span> &bull; Mumbai, India &bull; Baseline Test</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer" style="margin-top:48px">
+    <div>ARIXA Forensic Timeline &middot; Built for AIORI-3 Hackathon (Problem Statement PS-013)</div>
+    <div>100% Defensive &middot; Read-Only &middot; SHA-256 Chain of Custody</div>
+  </footer>
+</div>
+
+{% else %}
+<!-- =========================================================================
+     FULL DASHBOARD CONSOLE (When Evidence / Logs are Loaded)
+     ========================================================================= -->
+<div class="app-container">
+
+  <!-- =========================================================================
+       SIDEBAR
+       ========================================================================= -->
+  <aside class="sidebar">
+    <div class="brand-side">
+      <div class="logo-side">AR</div>
+      <div>
+        <div class="brand-title">ARIXA</div>
+        <div class="brand-sub">Forensic timeline &middot; DFIR</div>
+      </div>
+    </div>
+
+    <!-- Section: Add Evidence -->
+    <div>
+      <div class="section">Add evidence</div>
+      <form id="upload-form" enctype="multipart/form-data">
+        <div class="dropzone" id="upload-dropzone">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <div class="dropzone-text" style="font-size:0.78rem;font-weight:600">Drop auth.log / access.log here</div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">or click to browse</div>
+          <input type="file" id="file-input" name="files" multiple style="display:none">
+        </div>
+
+        <!-- Selected files container -->
+        <div id="selected-files-list" style="margin-top:8px;display:none;flex-direction:column;gap:5px"></div>
+
+        <div style="margin-top:10px">
+          <label class="section" style="display:block;margin-bottom:4px">Server Time Zone</label>
+          <select name="timezone" class="select" id="upload-tz">
+            {% for tz in timezones %}
+              <option value="{{ tz }}" {% if tz == "Asia/Kolkata" %}selected{% endif %}>{{ tz }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="margin-top:10px">
+          <label class="section" style="display:block;margin-bottom:4px">Clock Skew (seconds)</label>
+          <input type="number" name="skew_seconds" class="input" value="0" step="1">
+          <div class="hint">Positive if server clock ran slow (+180 = 3m slow)</div>
+        </div>
+
+        <button type="submit" id="btn-analyse" class="btn btn-primary btn-full" style="margin-top:10px">
+          &#9889; Analyse evidence
+        </button>
+      </form>
+
+      <div class="section" style="margin-top:14px">Quick load ready samples</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <button onclick="loadScenario('all')" class="btn btn-secondary btn-full" style="font-size:0.75rem;justify-content:flex-start;padding:6px 10px" title="Global Multi-Region Attack Chain">
+          &#127760; Full Demo (India &middot; UK &middot; USA)
+        </button>
+        <button onclick="loadScenario('ssh')" class="btn btn-secondary btn-full" style="font-size:0.75rem;justify-content:flex-start;padding:6px 10px" title="Mumbai, India - Bastion Takeover">
+          &#127470;&#127475; 01. SSH Brute Force (Mumbai)
+        </button>
+        <button onclick="loadScenario('web')" class="btn btn-secondary btn-full" style="font-size:0.75rem;justify-content:flex-start;padding:6px 10px" title="Bengaluru, India - Web Exploitation">
+          &#127470;&#127475; 02. Web Scan &amp; Shell (Bengaluru)
+        </button>
+        <button onclick="loadScenario('multi')" class="btn btn-secondary btn-full" style="font-size:0.75rem;justify-content:flex-start;padding:6px 10px" title="London, UK + New York, USA Lateral Movement">
+          &#127468;&#127463; &#127482;&#127480; 03. Multi-Zone (London + NY)
+        </button>
+        <button onclick="loadScenario('clean')" class="btn btn-secondary btn-full" style="font-size:0.75rem;justify-content:flex-start;padding:6px 10px" title="Mumbai, India - Clean Logs Baseline">
+          &#127470;&#127475; 08. Clean Logs (Mumbai HQ)
+        </button>
+      </div>
+    </div>
+
+    <!-- Section: Search Filters -->
+    <div>
+      <div class="section">Search filters</div>
+      <input type="text" id="filter-search" class="input" placeholder="Search keywords, IPs, commands...">
+
+      <div class="section" style="margin-top:10px">Severity</div>
+      <div class="pills" id="pills-sev">
+        <span class="pill-item sev-pill" data-sev="CRITICAL">CRITICAL</span>
+        <span class="pill-item sev-pill" data-sev="HIGH">HIGH</span>
+        <span class="pill-item sev-pill" data-sev="WARN">WARN</span>
+        <span class="pill-item sev-pill" data-sev="INFO">INFO</span>
+      </div>
+
+      <div style="margin-top:8px">
+        <label class="section" style="display:block;margin-bottom:4px">Source IP</label>
+        <select id="filter-ip" class="select">
+          <option value="">All source IPs</option>
+          {% for ip in all_ips %}
+            <option value="{{ ip }}">{{ ip }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="margin-top:8px">
+        <label class="section" style="display:block;margin-bottom:4px">User</label>
+        <select id="filter-user" class="select">
+          <option value="">All users</option>
+          {% for u in all_users %}
+            <option value="{{ u }}">{{ u }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="margin-top:8px">
+        <label class="section" style="display:block;margin-bottom:4px">Source File</label>
+        <select id="filter-source" class="select">
+          <option value="">All source files</option>
+          {% for s in all_sources %}
+            <option value="{{ s }}">{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button id="btn-reset-filters" class="btn btn-secondary btn-full" style="margin-top:12px;font-size:0.78rem">
+        &#8634; Reset filters
+      </button>
+    </div>
+
+    <!-- Section: Case Actions -->
+    <div style="margin-top:auto">
+      <div class="section">Case</div>
+      <button id="btn-open-export" class="btn btn-secondary btn-full" style="margin-bottom:8px">
+        &#128230; Export case...
+      </button>
+      <button id="btn-open-reset" class="btn btn-danger btn-full">
+        &#128465; Reset case
+      </button>
+
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <button id="theme-toggle" class="btn btn-secondary btn-full" style="font-size:0.78rem">
+          &#9728;&#65039; Light mode
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- =========================================================================
+       MAIN CONTENT
+       ========================================================================= -->
+  <main class="main-content">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">AR</div>
+        <div>
+          <div class="title">ARIXA Forensic Timeline</div>
+          <div class="subtitle">Incident response console &middot; AIORI PS-013</div>
+        </div>
+      </div>
+
+      <div class="chips">
+        {% if all_ok %}
+          <span class="chip ok" id="chip-evidence" title="Chain of Custody verified: all evidence files match original SHA-256 hashes">&#10004; {{ checks|length }} evidence files intact</span>
+        {% else %}
+          <span class="chip bad" id="chip-evidence" title="Forensic Integrity Alert: An evidence file on disk was modified or tampered with!">&#9888; TAMPER DETECTED</span>
+        {% endif %}
+
+        <span class="chip" id="chip-time" title="Live UTC Forensic Clock (Ticking every second)">
+          <span class="clock-icon">&#128337;</span>
+          <span class="clock-digits">{{ utc_now }} UTC</span>
+        </span>
+
+        <span class="chip filter" id="chip-filters" style="display:none;cursor:pointer" onclick="clearAllTimelineFilters()" title="Click to clear all active filters and return to full timeline">0 filters</span>
+
+        {% if ai_enabled %}
+          <span class="chip ai">&#10022; AI: active</span>
+        {% else %}
+          <span class="chip">&#10022; AI: off</span>
+        {% endif %}
+      </div>
+    </header>
+
+    <!-- KPIs Grid -->
+    <section class="kpis">
+      <div class="kpi" style="--k:#3B82F6">
+        <div class="label">Total Events</div>
+        <div class="value">{{ stats.events }}</div>
+        <div class="sub">Across {{ stats.sources }} sources</div>
+      </div>
+      <div class="kpi" style="--k:#F97316">
+        <div class="label">Detections</div>
+        <div class="value">{{ stats.detections }}</div>
+        <div class="sub">MITRE ATT&amp;CK rules</div>
+      </div>
+      <div class="kpi" style="--k:#EF4444">
+        <div class="label">Critical &amp; High</div>
+        <div class="value">{{ crit_high_count }}</div>
+        <div class="sub">Action required</div>
+      </div>
+      <div class="kpi" style="--k:#8B5CF6">
+        <div class="label">Attacker IPs</div>
+        <div class="value">{{ all_ips|length }}</div>
+        <div class="sub">Unique source IPs</div>
+      </div>
+      <div class="kpi" style="--k:#EC4899">
+        <div class="label">Target Users</div>
+        <div class="value">{{ all_users|length }}</div>
+        <div class="sub">Accounts targeted</div>
+      </div>
+      <div class="kpi" style="--k:#10B981" id="kpi-evidence-card">
+        <div class="label">Evidence Files</div>
+        <div class="value" id="kpi-evidence-val">{{ checks|length }}</div>
+        <div class="sub" id="kpi-evidence-sub">{% if all_ok %}SHA-256 verified{% else %}<span style="color:#EF4444;font-weight:700">&#9888; TAMPER DETECTED</span>{% endif %}</div>
+      </div>
+    </section>
+
+    <!-- Navigation Bar -->
+    <nav class="nav-bar">
+      <button class="nav-item active" data-tab="overview">&#128737;&#65039; Overview</button>
+      <button class="nav-item" data-tab="timeline">&#9201; Timeline</button>
+      <button class="nav-item" data-tab="detections">&#127919; Detections</button>
+      <button class="nav-item" data-tab="evidence">&#128274; Evidence</button>
+      <button class="nav-item nav-item-validation" data-tab="validation">&#9889; Validation</button>
+      <button class="nav-item" data-tab="gaps">&#9888;&#65039; Parsing Gaps</button>
+      <button class="nav-item nav-item-ai" data-tab="ai">&#10024; AI Copilot</button>
+    </nav>
+
+    <!-- =========================================================================
+         TAB: OVERVIEW
+         ========================================================================= -->
+    <div id="tab-overview" class="tab-pane">
+      <div class="section">MITRE ATT&amp;CK Kill Chain</div>
+      <div class="kc">
+        {% for tactic in kill_chain %}
+          <div class="t {% if tactic.count > 0 %}lit{% endif %}" 
+               style="{% if tactic.severity == 'CRITICAL' %}--c:#EF4444{% elif tactic.severity == 'HIGH' %}--c:#F97316{% elif tactic.severity == 'WARN' %}--c:#EAB308{% else %}--c:#3B82F6{% endif %}">
+            <div class="id">{{ tactic.id }}</div>
+            <div class="n">{{ tactic.name }}</div>
+            <div class="hits">
+              {% if tactic.count > 0 %}
+                {{ tactic.count }} alert(s)
+              {% else %}
+                &mdash;
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Interactive Threat Actor Attack Graph Canvas -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;margin-bottom:6px">
+        <div class="section" style="margin:0">Threat Actor Attack Graph (Interactive Canvas)</div>
+        <div style="font-size:0.75rem;color:var(--muted)">&#128070; Click any node or connecting line for detailed threat intelligence &middot; Drag to reposition &middot; Scroll to zoom</div>
+      </div>
+
+      <div class="card" style="padding:0;position:relative;overflow:hidden;border-radius:12px;margin-bottom:20px">
+        <!-- Floating Canvas Controls -->
+        <div style="position:absolute;top:12px;right:12px;z-index:10;display:flex;gap:6px;background:rgba(15,23,42,0.85);backdrop-filter:blur(6px);padding:6px;border-radius:8px;border:1px solid var(--border)">
+          <button id="btn-graph-fit" class="btn btn-secondary" style="padding:4px 9px;font-size:0.75rem" title="Fit to screen">&#127919; Fit</button>
+          <button id="btn-graph-zoom-in" class="btn btn-secondary" style="padding:4px 9px;font-size:0.75rem" title="Zoom in">&#10133;</button>
+          <button id="btn-graph-zoom-out" class="btn btn-secondary" style="padding:4px 9px;font-size:0.75rem" title="Zoom out">&#10134;</button>
+          <button id="btn-graph-physics" class="btn btn-secondary" style="padding:4px 9px;font-size:0.75rem" title="Toggle physics elastic mode">&#9889; Physics: On</button>
+        </div>
+
+        <!-- The Interactive Canvas Container -->
+        <div id="attack-graph-canvas" style="width:100%;height:520px;background:var(--surface2);outline:none"></div>
+
+        <!-- Canvas Legend Bar -->
+        <div style="display:flex;justify-content:center;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 14px;background:var(--surface);border-top:1px solid var(--border);font-size:0.75rem">
+          <span><b style="color:#EF4444">&#9632;</b> 🚨 Attacker IP</span>
+          <span><b style="color:#3B82F6">&#9632;</b> 💻 Target Server</span>
+          <span><b style="color:#A855F7">&#9632;</b> 🐚 Web Shell</span>
+          <span><b style="color:#F59E0B">&#9632;</b> 🏢 Internal Pivot IP</span>
+          <span><b style="color:#14B8A6">&#9632;</b> 👤 User Account</span>
+          <span><b style="color:#EC4899">&#9632;</b> 👑 Admin / Sudo</span>
+        </div>
+      </div>
+
+      <!-- Attack Chain Detections Table (Zero Horizontal Crawl) -->
+      <div class="section" style="margin-top:20px">Attack Chain &middot; Chronological Detections</div>
+      <div class="table-responsive-detections">
+        <table class="table-detections">
+          <thead>
+            <tr>
+              <th style="width:160px">Time (UTC)</th>
+              <th style="width:96px;min-width:96px;text-align:center">Severity</th>
+              <th style="width:125px">MITRE ATT&amp;CK</th>
+              <th>Detection Finding &amp; Forensic Details</th>
+              <th style="width:140px">Target Entities</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in detections %}
+              <tr class="overview-detection-row table-row-{{ d.severity|lower }}">
+                <td class="cell-time">{{ d.first_seen }}</td>
+                <td style="width:96px;min-width:96px;text-align:center;white-space:nowrap"><span class="sev sev-{{ d.severity|lower }}">{{ d.severity }}</span></td>
+                <td><span class="mitre">{{ d.mitre }}</span><div style="font-family:Consolas,monospace;font-size:0.72rem;color:var(--muted);margin-top:2px">{{ d.rule }}</div></td>
+                <td>
+                  <div style="font-weight:700;font-size:0.86rem;color:var(--text);margin-bottom:2px">{{ d.title }}</div>
+                  <div style="font-size:0.8rem;color:var(--muted);line-height:1.45;word-break:break-word">{{ d.description }}</div>
+                </td>
+                <td>
+                  {% if d.source_ip %}<div style="margin-bottom:3px"><span class="hl-ip" style="cursor:pointer;font-size:0.72rem;padding:1px 6px" onclick="pivotFilter('ip', '{{ d.source_ip }}')">🌐 {{ d.source_ip }}</span></div>{% endif %}
+                  {% if d.username %}<div><span class="hl-user" style="cursor:pointer;font-size:0.72rem;padding:1px 6px" onclick="pivotFilter('user', '{{ d.username }}')">👤 {{ d.username }}</span></div>{% endif %}
+                  {% if not d.source_ip and not d.username %}<span style="color:var(--muted);font-size:0.75rem">—</span>{% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No detections fired.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Sources Section -->
+      <div class="section" style="margin-top:24px">Sources &amp; Normalisation Notes</div>
+      {% for src, notes in source_notes.items %}
+        <div class="src">
+          <div class="name">{{ src }}</div>
+          {% for n in notes %}
+            <div class="info">&bull; {{ n }}</div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- =========================================================================
+         TAB: TIMELINE
+         ========================================================================= -->
+    <div id="tab-timeline" class="tab-pane" style="display:none">
+      <div class="section">Event Activity Over Time (UTC)</div>
+      <div class="card" style="height:190px;position:relative;margin-bottom:18px">
+        <canvas id="timeline-chart"></canvas>
+      </div>
+
+      <!-- Timeline Events Section Header with Filter Controls -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="section" style="margin:0">Unified Timeline Events</div>
+          <span class="chip" style="font-size:0.70rem;padding:2px 8px;font-family:Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--accent);border-color:rgba(59,130,246,0.3)" title="Live UTC Forensic Clock (Ticking every second)">
+            &#128337; <span class="live-utc-clock-text">{{ utc_now }} UTC</span>
+          </span>
+          <span id="timeline-filter-status-tag" style="display:none;font-size:0.72rem;padding:2px 8px;background:rgba(59,130,246,0.12);color:var(--accent);border:1px solid rgba(59,130,246,0.3);border-radius:12px;font-weight:600">
+            Filtered View
+          </span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div id="timeline-count" style="font-size:0.78rem;color:var(--muted)">Loading...</div>
+          <button id="btn-quick-clear-timeline" onclick="clearAllTimelineFilters()" class="btn btn-secondary" style="display:none;font-size:0.72rem;padding:3px 8px;border-color:var(--border)" title="Clear all filters and view full timeline">
+            &#10005; Clear Filters
+          </button>
+        </div>
+      </div>
+
+      <!-- Active Filters Bar with One-Click Cut / Remove Buttons -->
+      <div id="timeline-filter-banner" style="display:none;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:8px;padding:8px 12px;margin-bottom:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:0.74rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em">Active Filters:</span>
+          <div id="timeline-active-chips" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"></div>
+        </div>
+        <button onclick="clearAllTimelineFilters()" class="btn btn-secondary" style="font-size:0.74rem;padding:3px 9px" title="Clear all filters and return to full timeline">
+          &#8634; Return to Full Timeline
+        </button>
+      </div>
+
+      <div class="table-responsive-detections">
+        <table class="table-detections">
+          <thead>
+            <tr>
+              <th style="width:58px;text-align:center"># ID</th>
+              <th style="width:190px">Time (UTC &amp; Local)</th>
+              <th style="width:88px;min-width:88px;text-align:center">Severity</th>
+              <th style="width:180px">Location &amp; Source</th>
+              <th style="width:125px">IP Address</th>
+              <th style="width:85px">User</th>
+              <th>Event Summary</th>
+            </tr>
+          </thead>
+          <tbody id="timeline-table-body">
+            <tr>
+              <td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">Loading events...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         TAB: DETECTIONS
+         ========================================================================= -->
+    <div id="tab-detections" class="tab-pane" style="display:none">
+      <!-- Detections Subheader Toolbar -->
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="font-size:0.88rem;color:var(--text);font-weight:600">
+            Rule-based Detections (R1 &ndash; R8) mapped to <b>MITRE ATT&amp;CK</b>
+          </div>
+          <span id="detection-count-badge" style="font-size:0.75rem;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-weight:600">
+            {{ detections|length }} alert{{ detections|length|pluralize }}
+          </span>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <!-- Real-time Filter -->
+          <div style="position:relative">
+            <input type="text" id="detection-quick-filter" placeholder="Filter alerts (rule, IP, MITRE, user)..." style="padding:5px 10px 5px 28px;font-size:0.78rem;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);width:220px;outline:none">
+            <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:0.75rem;color:var(--muted);pointer-events:none">&#128269;</span>
+          </div>
+
+          <!-- View Mode Toggle -->
+          <div style="display:flex;gap:4px;background:var(--surface2);padding:3px;border-radius:8px;border:1px solid var(--border)">
+            <button id="view-mode-table" onclick="setDetectionsView('table')" class="btn btn-secondary active" style="padding:4px 9px;font-size:0.75rem" title="Structured compact table">&#128202; Table</button>
+            <button id="view-mode-cards" onclick="setDetectionsView('cards')" class="btn btn-secondary" style="padding:4px 9px;font-size:0.75rem" title="Executive incident card feed">&#128221; Cards</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 1: Fit-to-Screen Table View (Zero Horizontal Crawl) -->
+      <div id="detections-table-container" class="table-responsive-detections">
+        <table class="table-detections">
+          <thead>
+            <tr>
+              <th style="width:96px;min-width:96px;text-align:center">Severity</th>
+              <th style="width:125px">MITRE &amp; Rule</th>
+              <th>Detection Finding &amp; Forensic Details</th>
+              <th style="width:175px">Time Window (UTC)</th>
+              <th style="width:170px">Evidence Events</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in detections %}
+              <tr class="detection-table-row table-row-{{ d.severity|lower }}">
+                <td style="width:96px;min-width:96px;text-align:center;white-space:nowrap">
+                  <span class="sev sev-{{ d.severity|lower }}">{{ d.severity }}</span>
+                </td>
+                <td>
+                  <span class="mitre">{{ d.mitre }}</span>
+                  <div style="font-family:Consolas,monospace;font-size:0.72rem;color:var(--muted);margin-top:3px">{{ d.rule }}</div>
+                </td>
+                <td>
+                  <div style="font-weight:700;font-size:0.88rem;color:var(--text);margin-bottom:3px">{{ d.title }}</div>
+                  <div style="font-size:0.81rem;color:var(--muted);line-height:1.45;word-break:break-word">{{ d.description }}</div>
+                  {% if d.source_ip or d.username %}
+                    <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;align-items:center">
+                      {% if d.source_ip %}
+                        <span class="hl-ip" style="cursor:pointer;font-size:0.72rem;padding:1px 6px" onclick="pivotFilter('ip', '{{ d.source_ip }}')" title="Filter timeline on IP {{ d.source_ip }}">🌐 {{ d.source_ip }}</span>
+                      {% endif %}
+                      {% if d.username %}
+                        <span class="hl-user" style="cursor:pointer;font-size:0.72rem;padding:1px 6px" onclick="pivotFilter('user', '{{ d.username }}')" title="Filter timeline on user {{ d.username }}">👤 {{ d.username }}</span>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                </td>
+                <td>
+                  <div style="font-family:Consolas,monospace;font-size:0.74rem;line-height:1.35">
+                    <div style="color:var(--muted);font-size:0.67rem;text-transform:uppercase;font-weight:600">First Seen</div>
+                    <div>{{ d.first_seen }}</div>
+                    <div style="color:var(--muted);font-size:0.67rem;text-transform:uppercase;font-weight:600;margin-top:4px">Last Seen</div>
+                    <div>{{ d.last_seen }}</div>
+                  </div>
+                </td>
+                <td>
+                  <div style="font-size:0.72rem;color:var(--muted);font-weight:600;margin-bottom:4px">{{ d.event_ids|length }} Event{{ d.event_ids|length|pluralize }}:</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:3px;max-height:85px;overflow-y:auto">
+                    {% for eid in d.event_ids %}
+                      <span class="chip" style="font-size:0.68rem;padding:1px 5px;cursor:pointer" onclick="openEventDetail({{ eid }})" title="Inspect raw event #{{ eid }}">#{{ eid }}</span>
+                    {% endfor %}
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" style="text-align:center;color:var(--muted);padding:28px">No detections fired.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- VIEW 2: Incident Cards Feed (Zero Horizontal Crawl) -->
+      <div id="detections-card-container" style="display:none;width:100%;overflow-x:hidden">
+        {% for d in detections %}
+          <div class="detection-card card-sev-{{ d.severity|lower }}" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span class="sev sev-{{ d.severity|lower }}">{{ d.severity }}</span>
+                <span class="mitre">{{ d.mitre }}</span>
+                <span style="font-weight:700;font-size:0.92rem;color:var(--text)">{{ d.title }}</span>
+                <span style="font-family:Consolas,monospace;font-size:0.74rem;color:var(--muted);background:var(--surface2);padding:2px 6px;border-radius:4px;border:1px solid var(--border)">{{ d.rule }}</span>
+              </div>
+              <div style="font-family:Consolas,monospace;font-size:0.74rem;color:var(--muted);background:var(--surface2);padding:3px 8px;border-radius:6px;border:1px solid var(--border);white-space:nowrap">
+                <span>🕒 {{ d.first_seen }}</span> &rarr; <span>{{ d.last_seen }}</span>
+              </div>
+            </div>
+
+            <div style="margin-top:8px;font-size:0.83rem;color:var(--text);line-height:1.5;word-break:break-word">
+              {{ d.description }}
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                {% if d.source_ip %}
+                  <span class="hl-ip" style="cursor:pointer;font-size:0.74rem;padding:2px 7px" onclick="pivotFilter('ip', '{{ d.source_ip }}')">🌐 IP: {{ d.source_ip }}</span>
+                {% endif %}
+                {% if d.username %}
+                  <span class="hl-user" style="cursor:pointer;font-size:0.74rem;padding:2px 7px" onclick="pivotFilter('user', '{{ d.username }}')">👤 User: {{ d.username }}</span>
+                {% endif %}
+              </div>
+              <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+                <span style="font-size:0.72rem;color:var(--muted);font-weight:600">Correlated Events ({{ d.event_ids|length }}):</span>
+                {% for eid in d.event_ids %}
+                  <span class="chip" style="font-size:0.7rem;padding:2px 6px;cursor:pointer" onclick="openEventDetail({{ eid }})" title="Inspect raw event #{{ eid }}">#{{ eid }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="card" style="text-align:center;color:var(--muted);padding:28px">No detections fired.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         TAB: EVIDENCE & CUSTODY
+         ========================================================================= -->
+    <div id="tab-evidence" class="tab-pane" style="display:none">
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:8px">
+            <span>&#128274;</span> Evidence Integrity &amp; Chain of Custody
+          </div>
+          <div style="font-size:0.8rem;color:var(--muted);margin-top:2px">
+            Every log source is cryptographically hashed with SHA-256 upon arrival and locked read-only.
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="btn-verify-now" class="btn btn-secondary" title="Re-calculate SHA-256 hashes of all evidence files on disk">&#9989; Verify Evidence Now</button>
+          <button id="btn-tamper-demo" class="btn btn-danger" title="Simulate unauthorized tampering on evidence copy">&#9888;&#65039; Simulate Tamper (Demo)</button>
+          <button id="btn-restore-evidence" class="btn btn-secondary" style="color:var(--ok-fg);border-color:var(--ok-bd);font-weight:600" title="Restore pristine evidence from verified source and re-verify">&#128737;&#65039; Restore Original Evidence</button>
+        </div>
+      </div>
+
+      <!-- Live Integrity Alert Banner -->
+      <div id="evidence-integrity-banner" style="margin-top:14px">
+        {% if all_ok %}
+          <div class="note" style="border-left-color:var(--ok-fg);background:rgba(16,185,129,0.08);color:var(--text);padding:12px 16px;border-radius:8px">
+            <span style="color:var(--ok-fg);font-weight:700">&#10004; Cryptographic Verification: 100% Intact</span> &mdash; All {{ checks|length }} evidence files match their original SHA-256 manifest. Chain of Custody is tamper-free.
+          </div>
+        {% else %}
+          <div class="note" style="border-left-color:var(--bad-fg);background:rgba(239,68,68,0.12);color:var(--text);padding:14px 18px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="color:var(--bad-fg);font-weight:800;font-size:0.95rem;display:flex;align-items:center;gap:6px">
+                <span>&#9888;&#65039;</span> CRITICAL: EVIDENCE TAMPER DETECTED!
+              </div>
+              <div style="font-size:0.82rem;color:var(--text);margin-top:4px">
+                One or more evidence copies on disk fail SHA-256 verification against the ingestion manifest. Forensic integrity violation logged to Chain of Custody.
+              </div>
+            </div>
+            <button onclick="restoreEvidenceFile('')" class="btn btn-primary" style="background:#10B981;border-color:#10B981;font-weight:700;padding:6px 14px">
+              &#128737;&#65039; Fix Tamper &amp; Restore Pristine Files
+            </button>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="section" style="margin-top:16px">Evidence Manifest</div>
+      <div class="table-responsive-detections">
+        <table class="table-detections">
+          <thead>
+            <tr>
+              <th style="width:110px;text-align:center">Status</th>
+              <th>Evidence Source &amp; Storage Copy</th>
+              <th style="width:38%">SHA-256 Checksum (Tamper-Proof)</th>
+              <th style="width:175px">Ingestion (UTC) &amp; Size</th>
+            </tr>
+          </thead>
+          <tbody id="evidence-manifest-tbody">
+            {% for m in manifest %}
+              <tr class="evidence-row" data-file="{{ m.evidence_file }}" style="{% if m.status != 'OK' %}background:rgba(239,68,68,0.06){% endif %}">
+                <td style="text-align:center;vertical-align:middle">
+                  {% if m.status == 'OK' %}
+                    <span class="sev" style="background:rgba(16,185,129,0.15);color:#10B981;border-color:rgba(16,185,129,0.3);font-weight:700;padding:3px 8px;display:inline-block">&#10004; OK</span>
+                    <div style="font-size:0.68rem;color:var(--muted);margin-top:4px">Verified Intact</div>
+                  {% else %}
+                    <span class="sev" style="background:#EF4444;color:#FFFFFF;border-color:#EF4444;font-weight:800;padding:3px 8px;display:inline-block">&#10006; TAMPER</span>
+                    <div style="font-size:0.68rem;color:#EF4444;font-weight:700;margin-top:4px">Hash Mismatch</div>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="restoreEvidenceFile('{{ m.evidence_file }}')" style="margin-top:6px;padding:2px 8px;font-size:0.7rem;color:var(--ok-fg);border-color:var(--ok-bd);font-weight:600" title="Restore this pristine file">&#128737;&#65039; Restore</button>
+                  {% endif %}
+                </td>
+                <td>
+                  <div style="font-family:Consolas,monospace;font-weight:700;font-size:0.83rem;color:var(--text);word-break:break-all;line-height:1.4">
+                    {{ m.source_label }}
+                  </div>
+                  <div style="font-family:Consolas,monospace;font-size:0.73rem;color:var(--muted);margin-top:5px;word-break:break-all;line-height:1.35">
+                    <span style="color:var(--accent);font-weight:600">📁 Read-Only Evidence Copy:</span> {{ m.evidence_file }}
+                  </div>
+                </td>
+                <td>
+                  {% if m.status == 'OK' %}
+                    <div style="background:var(--surface2);padding:7px 10px;border-radius:6px;border:1px solid var(--border);word-break:break-all;font-family:Consolas,monospace;font-size:0.73rem;line-height:1.45;color:var(--text);letter-spacing:0.02em">
+                      <div style="font-size:0.67rem;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:2px">SHA-256 Checksum</div>
+                      {{ m.sha256 }}
+                    </div>
+                  {% else %}
+                    <div style="background:rgba(239,68,68,0.1);padding:8px 10px;border-radius:6px;border:1.5px solid rgba(239,68,68,0.4);word-break:break-all;font-family:Consolas,monospace;font-size:0.73rem;line-height:1.45">
+                      <div style="font-size:0.67rem;color:#EF4444;text-transform:uppercase;font-weight:800;margin-bottom:2px">&#9888; Expected (Manifest):</div>
+                      <div style="color:var(--text)">{{ m.sha256 }}</div>
+                      <div style="font-size:0.67rem;color:#EF4444;text-transform:uppercase;font-weight:800;margin-top:5px;margin-bottom:2px">&#10006; Actual on Disk (Altered):</div>
+                      <div style="color:#EF4444;font-weight:700">{{ m.actual_sha256|default:"TAMPERED FILE CONTENT" }}</div>
+                    </div>
+                  {% endif %}
+                </td>
+                <td>
+                  <div style="font-family:Consolas,monospace;font-size:0.74rem;line-height:1.35">
+                    <div style="color:var(--muted);font-size:0.67rem;text-transform:uppercase;font-weight:600">Collected (UTC)</div>
+                    <div>{{ m.ingested_utc }}</div>
+                    <div style="color:var(--muted);font-size:0.67rem;text-transform:uppercase;font-weight:600;margin-top:5px">File Size</div>
+                    <div style="font-weight:600">{{ m.size_bytes }} bytes</div>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No evidence collected.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section" style="margin-top:24px">Chain of Custody (Newest First)</div>
+      <div class="table-responsive-detections">
+        <table class="table-detections">
+          <thead>
+            <tr>
+              <th style="width:165px">Time (UTC)</th>
+              <th style="width:180px">Action</th>
+              <th>Audit Log Details</th>
+            </tr>
+          </thead>
+          <tbody id="custody-log-tbody">
+            {% for c in custody %}
+              <tr style="{% if c.action == 'TAMPER_ALERT' %}background:rgba(239,68,68,0.08){% elif c.action == 'EVIDENCE_RESTORED' %}background:rgba(16,185,129,0.08){% endif %}">
+                <td class="cell-time">{{ c.time }}</td>
+                <td style="font-weight:600">
+                  {% if c.action == 'TAMPER_ALERT' %}
+                    <span style="color:#EF4444;font-weight:800;background:rgba(239,68,68,0.15);padding:2px 8px;border-radius:4px;border:1px solid rgba(239,68,68,0.3)">&#128680; TAMPER_ALERT</span>
+                  {% elif c.action == 'EVIDENCE_RESTORED' %}
+                    <span style="color:#10B981;font-weight:800;background:rgba(16,185,129,0.15);padding:2px 8px;border-radius:4px;border:1px solid rgba(16,185,129,0.3)">&#128737;&#65039; EVIDENCE_RESTORED</span>
+                  {% elif c.action == 'TAMPER_SIMULATED' %}
+                    <span style="color:#F59E0B;font-weight:700">&#9888;&#65039; TAMPER_SIMULATED</span>
+                  {% elif c.action == 'EVIDENCE_VERIFIED' %}
+                    <span style="color:var(--accent);font-weight:600">&#10004; EVIDENCE_VERIFIED</span>
+                  {% else %}
+                    <span style="color:var(--accent)">{{ c.action }}</span>
+                  {% endif %}
+                </td>
+                <td class="code-cell-break" style="color:var(--muted);word-break:break-all;font-size:0.75rem;line-height:1.4">{{ c.details }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3" style="text-align:center;color:var(--muted);padding:24px">No custody entries.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         TAB: VALIDATION
+         ========================================================================= -->
+    <div id="tab-validation" class="tab-pane" style="display:none">
+      <div class="score-hero">
+        <div class="top">
+          <div class="t">&#9889; Ground-Truth Validation Scorecard</div>
+          <div class="verdict {% if scorecard.passed != scorecard.total %}fail{% endif %}">
+            {% if scorecard.passed == scorecard.total %}PASS (100%){% else %}FAIL{% endif %}
+          </div>
+        </div>
+        <div class="score-grid">
+          <div class="m">
+            <div class="v">{{ scorecard.alerts_found }} <small>/ {{ scorecard.alerts_expected }}</small></div>
+            <div class="l">Expected Alerts Found</div>
+          </div>
+          <div class="m">
+            <div class="v">{{ scorecard.false_positives }}</div>
+            <div class="l">False Positives</div>
+          </div>
+          <div class="m">
+            <div class="v">{{ scorecard.passed }} <small>/ {{ scorecard.total }}</small></div>
+            <div class="l">Scenarios Passed</div>
+          </div>
+          <div class="m">
+            <div class="v">{{ scorecard.hashes_ok }} <small>/ {{ scorecard.hashes_total }}</small></div>
+            <div class="l">Evidence Hashes OK</div>
+          </div>
+          <div class="m">
+            <div class="v">{{ scorecard.tool_seconds }} <small>s</small></div>
+            <div class="l">Processing Time</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 Synthetic Scenarios Cards -->
+      <div class="section">Synthetic Incident Scenarios</div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:24px">
+        {% for sc in scorecard.scenarios %}
+          <div class="scard" style="--c:{% if sc.passed %}#10B981{% else %}#EF4444{% endif %}">
+            <div class="h">
+              <span>{{ sc.title }}</span>
+              <span class="p">{% if sc.passed %}PASS{% else %}FAIL{% endif %}</span>
+            </div>
+            <div class="facts">
+              <div>&bull; Alerts: <b>{{ sc.expected|length }} / {{ sc.expected|length }}</b> (0 extra)</div>
+              <div>&bull; Hashes: <b>{{ sc.hashes_ok }} / {{ sc.hashes }}</b> intact</div>
+              <div>&bull; Time: <b>{{ sc.seconds }} s</b> vs ~{{ sc.manual_minutes }} min manual</div>
+            </div>
+            <div style="margin-top:10px">
+              {% for rule in sc.expected %}
+                <span class="rule ok">&#10004; {{ rule }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Why UTC + Clock Skew Matters -->
+      <div class="section">Why UTC + Clock-Skew Correction Matters (Scenario 3)</div>
+      <div class="cmp">
+        <div class="cmpcol">
+          <div class="h">1. Raw Local Time</div>
+          <div class="s">No timezone adjustment, no clock drift fix</div>
+          <div class="ev attack">
+            <div class="tm">11:03:00</div>
+            <div class="hs">web01</div>
+            <div>Web shell command executed</div>
+          </div>
+          <div class="ev attack shell">
+            <div class="tm">01:31:00</div>
+            <div class="hs">db01</div>
+            <div>Attacker logged in via SSH</div>
+          </div>
+          <div class="vd bad">&#10006; MISSED &mdash; SSH login appeared 9h 32m before web break-in!</div>
+        </div>
+
+        <div class="cmpcol">
+          <div class="h">2. UTC (No Skew Fix)</div>
+          <div class="s">Converted to UTC, but 3-minute slow clock ignored</div>
+          <div class="ev attack">
+            <div class="tm">05:33:00</div>
+            <div class="hs">web01</div>
+            <div>Web shell command executed</div>
+          </div>
+          <div class="ev attack shell">
+            <div class="tm">05:31:00</div>
+            <div class="hs">db01</div>
+            <div>Attacker logged in via SSH</div>
+          </div>
+          <div class="vd bad">&#10006; MISSED &mdash; Pivot appeared 2m 5s before web break-in!</div>
+        </div>
+
+        <div class="cmpcol" style="border-color:#10B981">
+          <div class="h" style="color:#10B981">3. ARIXA (UTC + Skew Fix)</div>
+          <div class="s">UTC normalisation with +180s clock-drift offset</div>
+          <div class="ev attack">
+            <div class="tm">05:33:00</div>
+            <div class="hs">web01</div>
+            <div>Web shell command executed</div>
+          </div>
+          <div class="ev attack shell">
+            <div class="tm">05:33:25</div>
+            <div class="hs">db01</div>
+            <div>Attacker logged in via SSH</div>
+          </div>
+          <div class="vd ok">&#10004; DETECTED &mdash; Lateral movement detected 25s after break-in!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         TAB: PARSING GAPS
+         ========================================================================= -->
+    <div id="tab-gaps" class="tab-pane" style="display:none">
+      <div class="note">
+        {{ gaps|length }} line(s) did not match standard syslog or web combined format. They are preserved here and in <code>output/parsing_gaps.jsonl</code> instead of being silently dropped.
+      </div>
+
+      <div class="table-responsive-detections">
+        <table class="table-detections">
+          <thead>
+            <tr>
+              <th style="width:190px">Source File</th>
+              <th style="width:65px;text-align:center">Line</th>
+              <th style="width:180px">Reason Unparsed</th>
+              <th>Raw Log Line</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for g in gaps %}
+              <tr>
+                <td style="font-weight:600;word-break:break-all;font-family:Consolas,monospace;font-size:0.75rem">{{ g.source_file }}</td>
+                <td style="text-align:center;font-family:Consolas,monospace;font-size:0.75rem;color:var(--muted)">{{ g.line_number }}</td>
+                <td style="color:var(--s-warn);font-size:0.78rem;word-break:break-word">{{ g.reason }}</td>
+                <td class="code-cell-break" style="color:var(--muted);word-break:break-all;font-size:0.75rem;line-height:1.4">{{ g.raw_line }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Zero parsing gaps &mdash; all log lines parsed cleanly!</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         TAB: AI COPILOT
+         ========================================================================= -->
+    <div id="tab-ai" class="tab-pane" style="display:none">
+      <div class="ai-minimal-hero">
+        <div class="ai-hero-header">
+          <div class="ai-hero-title">
+            <span>Gemini AI Copilot</span>
+            <span class="ai-hero-tag">Guarded &middot; Read-Only</span>
+          </div>
+          <div class="ai-hero-meta">
+            Model: gemini-flash
+          </div>
+        </div>
+        <div class="ai-hero-desc">
+          Synthesizes forensic timeline evidence into an incident summary and translates natural-language queries into safe SQLite filters. All IP addresses and usernames are redacted locally before query.
+        </div>
+        <div class="ai-hero-guards">
+          <span class="ai-guard-item"><span class="ai-guard-dot"></span> Local Token Redaction</span>
+          <span class="ai-guard-item"><span class="ai-guard-dot"></span> SQLite Event Cross-Validation</span>
+          <span class="ai-guard-item"><span class="ai-guard-dot"></span> Prompt Hashed to Custody Log</span>
+          <span class="ai-guard-item"><span class="ai-guard-dot"></span> 100% Optional / Safe Fallback</span>
+        </div>
+      </div>
+
+      {% if not ai_enabled %}
+        <div class="note">
+          {{ ai_msg }}. To enable AI assistance, create a <code>.env</code> file with <code>GEMINI_API_KEY=your_key</code>.
+        </div>
+      {% else %}
+        <div class="card">
+          <div class="section">1. Explain the Incident in Plain English</div>
+          <button id="btn-ai-narrative" class="btn btn-primary">
+            &#10024; Generate Incident Story
+          </button>
+          <div id="ai-narrative-result" style="margin-top:12px">
+            {% if ai_summary %}
+              <div class="card" style="background:var(--surface2);border:1px solid var(--border)">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+                  <div style="font-weight:700;font-size:1.1rem">{{ ai_summary.headline|default:"Guarded AI Incident Narrative" }}</div>
+                  <div class="hl-legend">
+                    <span><span class="hl-ip">&#9679; IP</span> Yellow</span>
+                    <span><span class="hl-user">&#9679; User</span> Red</span>
+                    <span><span class="hl-event">#ID</span> Clickable</span>
+                  </div>
+                </div>
+                <div class="ai-story-box ai-narrative-raw">{{ ai_summary.narrative }}</div>
+                <div class="ailabel" style="margin-top:14px;border-top:1px solid var(--border);padding-top:8px">
+                  &#9888;&#65039; AI-generated &middot; analyst verification required. (Model: {{ ai_summary.model|default:"Gemini" }})
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="section">2. Ask Questions in Natural Language</div>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="ai-ask-input" class="input" placeholder="e.g. Show me failed SSH attempts for root...">
+            <button id="btn-ai-ask" class="btn btn-primary" style="white-space:nowrap">Ask</button>
+          </div>
+          <div id="ai-ask-result" style="margin-top:12px"></div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div>ARIXA Forensic Timeline &middot; Built for AIORI-3 Hackathon (Problem Statement PS-013)</div>
+      <div>100% Defensive &middot; Read-Only &middot; SHA-256 Verified</div>
+    </footer>
+
+  </main>
+</div>
+{% endif %}
+
+<!-- =========================================================================
+     MODAL: EXPORT CASE
+     ========================================================================= -->
+<div class="modal-overlay" id="modal-export">
+  <div class="modal-box">
+    <button class="modal-close">&times;</button>
+    <div style="font-size:1.25rem;font-weight:700;margin-bottom:4px">Export Case Bundle</div>
+    <div style="font-size:0.8rem;color:var(--muted);margin-bottom:16px">
+      Download reports, raw data, or a complete forensic audit package.
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <a href="/export/zip/" class="btn btn-primary" style="text-align:left;justify-content:flex-start">
+        &#128230; Complete Case Bundle (.zip) &mdash; Reports, Evidence, CSVs, Custody Log
+      </a>
+      <div style="display:flex;gap:6px">
+        <a href="/export/html/" class="btn btn-secondary" style="flex:1;text-align:left;justify-content:flex-start">
+          &#127760; Incident Report (.html) &mdash; Interactive &amp; Self-Contained Web Document
+        </a>
+        <a href="/export/html/?view=1" target="_blank" class="btn btn-secondary" style="padding:8px 14px" title="Open and print in new tab">
+          &#128065;&#65039; View
+        </a>
+      </div>
+      <a href="/export/pdf/" class="btn btn-secondary" style="text-align:left;justify-content:flex-start">
+        &#128196; Incident Report (.pdf) &mdash; Court/Executive Ready
+      </a>
+      <a href="/export/md/" class="btn btn-secondary" style="text-align:left;justify-content:flex-start">
+        &#128221; Incident Report (.md) &mdash; Markdown Format
+      </a>
+      <a href="/export/csv/" class="btn btn-secondary" style="text-align:left;justify-content:flex-start">
+        &#128202; Timeline Events (.csv) &mdash; Spreadsheet Data
+      </a>
+      <a href="/export/json/" class="btn btn-secondary" style="text-align:left;justify-content:flex-start">
+        &#128187; Detections (.json) &mdash; Raw MITRE ATT&amp;CK Detections
+      </a>
+    </div>
+
+    <button class="btn btn-secondary modal-cancel" style="margin-top:16px;width:100%">Close</button>
+  </div>
+</div>
+
+<!-- =========================================================================
+     MODAL: RESET CASE
+     ========================================================================= -->
+<div class="modal-overlay" id="modal-reset">
+  <div class="modal-box">
+    <button class="modal-close">&times;</button>
+    <div style="font-size:1.2rem;font-weight:700;color:#EF4444;margin-bottom:4px">Reset Current Case?</div>
+    <div class="note" style="border-left-color:#EF4444;margin-top:10px">
+      This permanently wipes the current timeline database and temporary evidence copies. The append-only chain of custody will record that the session was deleted.
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button id="btn-confirm-reset" class="btn btn-danger" style="flex:1">Yes, wipe current case</button>
+      <button class="btn btn-secondary modal-cancel" style="flex:1">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================================
+     DRAWER: EVENT DETAILS
+     ========================================================================= -->
+<div class="drawer-overlay" id="event-drawer">
+  <div class="drawer" id="drawer-content"></div>
+</div>
+
+<!-- =========================================================================
+     MODAL: DRAGGABLE LOADING & AI LIVE ANALYSIS CONSOLE
+     ========================================================================= -->
+<div class="loading-overlay" id="loading-overlay" style="display:none">
+  <div class="loading-modal" id="loading-modal">
+    <!-- Draggable Header -->
+    <div class="loading-modal-header" id="loading-drag-handle">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:0.95rem;color:var(--accent)">&#9889;</span>
+        <span style="font-weight:700;font-size:0.92rem;color:var(--text)">Forensic Pipeline &amp; AI Analysis Engine</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:0.7rem;color:var(--muted);background:var(--surface2);padding:2px 8px;border-radius:4px;border:1px solid var(--border)">
+          &#10021; Drag to Move
+        </span>
+        <span class="live-radar-dot"></span>
+      </div>
+    </div>
+
+    <!-- Modal Body: 2-Column Split Layout -->
+    <div class="loading-modal-body">
+      <!-- Left Column: Progress Bar & Forensic Stages Checklist -->
+      <div class="loading-left-col">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span id="loading-stage-text" style="font-weight:600;font-size:0.86rem;color:var(--text)">Initializing ingest pipeline...</span>
+          <span id="loading-percentage" style="font-weight:700;font-family:Consolas,monospace;font-size:0.9rem;color:var(--accent)">0%</span>
+        </div>
+
+        <!-- The Animated Progress Bar -->
+        <div class="progress-track">
+          <div class="progress-fill" id="loading-progress-bar" style="width:0%"></div>
+        </div>
+
+        <!-- Forensic Stages Checklist -->
+        <div class="loading-steps-list" style="margin-top:14px">
+          <div class="loading-step-item" id="step-hash">
+            <span class="step-icon">&#9675;</span>
+            <span class="step-label">1. SHA-256 Evidence Hashing &amp; Read-Only Sealing</span>
+          </div>
+          <div class="loading-step-item" id="step-parse">
+            <span class="step-icon">&#9675;</span>
+            <span class="step-label">2. Multi-Format Log Parsing &amp; Gap Logging</span>
+          </div>
+          <div class="loading-step-item" id="step-time">
+            <span class="step-icon">&#9675;</span>
+            <span class="step-label">3. Timezone &amp; Clock-Skew Offset Alignment</span>
+          </div>
+          <div class="loading-step-item" id="step-detect">
+            <span class="step-icon">&#9675;</span>
+            <span class="step-label">4. 8 MITRE ATT&amp;CK Rules Correlation</span>
+          </div>
+          <div class="loading-step-item" id="step-graph">
+            <span class="step-icon">&#9675;</span>
+            <span class="step-label">5. Threat Graph Synthesis &amp; Chain of Custody</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Small Box (Live AI Summary & Analysis Stream) -->
+      <div class="loading-right-col">
+        <div class="ai-live-box">
+          <div class="ai-live-header">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="color:#A855F7;font-size:0.9rem">&#10024;</span>
+              <span style="font-weight:700;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text)">Live AI Incident Scout</span>
+            </div>
+            <span class="ai-live-badge">&#9679; Analyzing</span>
+          </div>
+
+          <!-- Dynamic Live Summary Text -->
+          <div class="ai-live-content" id="ai-live-summary-text">
+            Initializing AI analysis engine... scanning log lines for authentication anomalies, brute force patterns, and web exploitation payloads.
+          </div>
+
+          <!-- Live Metrics Pills inside the AI Box -->
+          <div class="ai-live-pills" id="ai-live-pills">
+            <span class="ai-live-chip" id="ai-chip-events">Events: 0</span>
+            <span class="ai-live-chip" id="ai-chip-alerts">Detections: 0</span>
+            <span class="ai-live-chip" id="ai-chip-status" style="color:var(--ok-fg)">Integrity: OK</span>
+          </div>
+
+          <div class="ai-live-footer">
+            Guarded tokens active &middot; Local PII masked
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'js/app.js' %}"></script>
+</body>
+</html>
+

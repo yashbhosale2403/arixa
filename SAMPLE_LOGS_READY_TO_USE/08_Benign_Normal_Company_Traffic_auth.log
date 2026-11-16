@@ -1,0 +1,16 @@
+Oct 12 08:00:01 office-srv01 CRON[1001]: pam_unix(cron:session): session opened for user root by (uid=0)
+Oct 12 08:00:02 office-srv01 CRON[1001]: pam_unix(cron:session): session closed for user root
+Oct 12 08:15:22 office-srv01 sshd[1020]: Accepted publickey for alice from 192.168.1.105 port 54102 ssh2
+Oct 12 08:15:22 office-srv01 sshd[1020]: pam_unix(sshd:session): session opened for user alice by (uid=0)
+Oct 12 08:16:04 office-srv01 sudo:   alice : TTY=pts/0 ; PWD=/home/alice ; USER=root ; COMMAND=/usr/bin/systemctl status nginx
+Oct 12 08:17:15 office-srv01 sudo:   alice : TTY=pts/0 ; PWD=/home/alice ; USER=root ; COMMAND=/bin/df -h
+Oct 12 08:25:40 office-srv01 sshd[1045]: Accepted publickey for bob from 192.168.1.110 port 54210 ssh2
+Oct 12 08:25:40 office-srv01 sshd[1045]: pam_unix(sshd:session): session opened for user bob by (uid=0)
+Oct 12 08:26:10 office-srv01 sudo:   bob : TTY=pts/1 ; PWD=/home/bob ; USER=root ; COMMAND=/usr/bin/uptime
+Oct 12 08:30:00 office-srv01 CRON[1105]: pam_unix(cron:session): session opened for user root by (uid=0)
+Oct 12 08:30:02 office-srv01 CRON[1105]: pam_unix(cron:session): session closed for user root
+Oct 12 08:45:12 office-srv01 sshd[1020]: Disconnected from user alice 192.168.1.105 port 54102
+Oct 12 08:50:30 office-srv01 sshd[1045]: Disconnected from user bob 192.168.1.110 port 54210
+Oct 12 09:00:01 office-srv01 CRON[1201]: pam_unix(cron:session): session opened for user root by (uid=0)
+Oct 12 09:00:03 office-srv01 CRON[1201]: pam_unix(cron:session): session closed for user root
+

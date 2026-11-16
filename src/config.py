@@ -22,6 +22,7 @@ GAPS_PATH = OUTPUT_DIR / "parsing_gaps.jsonl"      # lines we could not understa
 TIMING_PATH = OUTPUT_DIR / "triage_times.json"     # how long each run took
 REPORT_MD_PATH = OUTPUT_DIR / "incident_report.md"
 REPORT_PDF_PATH = OUTPUT_DIR / "incident_report.pdf"
+REPORT_HTML_PATH = OUTPUT_DIR / "incident_report.html"
 AI_SUMMARY_PATH = OUTPUT_DIR / "ai_summary.json"   # saved AI narrative (optional)
 
 # ---------------------------------------------------------------------------
@@ -47,15 +48,25 @@ SOURCE_SETTINGS = {
         "year": 2026,
     },
     "scenario2_web_exploit/access.log": {
-        # access.log already contains "+0530", so only skew matters here
+        "timezone": "Asia/Kolkata",
         "skew_seconds": 0,
     },
     "scenario3_multi_timezone/web01_access.log": {
+        "timezone": "Europe/London",
+        "skew_seconds": 0,
+    },
+    "03A_Web_Server_London_access.log": {
+        "timezone": "Europe/London",
         "skew_seconds": 0,
     },
     "scenario3_multi_timezone/db01_auth.log": {
         "timezone": "America/New_York",   # the DB server sits in a US data centre
         "skew_seconds": 180,              # its clock was found to be 3 minutes slow
+        "year": 2026,
+    },
+    "03B_Database_Server_NewYork_auth.log": {
+        "timezone": "America/New_York",
+        "skew_seconds": 180,
         "year": 2026,
     },
 }

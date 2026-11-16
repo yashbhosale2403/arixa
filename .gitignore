@@ -4,6 +4,8 @@
 
 # Generated forensic outputs and evidence
 *.db
+*.sqlite
+*.sqlite3
 output/
 evidence/
 uploads/
