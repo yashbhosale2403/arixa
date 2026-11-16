@@ -34,22 +34,22 @@ TIMEZONES = [
 ]
 
 DEMO_ANALYSTS = {
-    "analyst": {
-        "password": "arixa2026",
-        "role": "Lead Incident Responder",
-        "clearance": "Level 3 (Full DFIR)",
-        "name": "Alex Chen, CISSP",
-        "icon": "👤",
-    },
     "admin": {
-        "password": "admin123",
+        "password": "admin",
         "role": "Forensics Administrator",
         "clearance": "Level 4 (SecOps Lead)",
         "name": "Sarah Miller, GCFA",
         "icon": "🛡️",
     },
+    "analyst": {
+        "password": "admin",
+        "role": "Lead Incident Responder",
+        "clearance": "Level 3 (Full DFIR)",
+        "name": "Alex Chen, CISSP",
+        "icon": "👤",
+    },
     "demo": {
-        "password": "demo",
+        "password": "admin",
         "role": "Field Investigator",
         "clearance": "Level 2 (Read/Verify)",
         "name": "DFIR Evaluator",
@@ -240,9 +240,14 @@ def login_view(request):
         else:
             _ensure_demo_users()
             user = authenticate(request, username=username, password=password)
-            if user is None and username in DEMO_ANALYSTS and DEMO_ANALYSTS[username]["password"] == password:
+            accepted_passwords = {"admin", "admin123", "arixa2026", "demo"}
+            if user is None and username in DEMO_ANALYSTS and (password in accepted_passwords or password == DEMO_ANALYSTS[username]["password"]):
                 from django.contrib.auth.models import User
                 user = User.objects.filter(username=username).first()
+                if user:
+                    user.set_password(password)
+                    user.save()
+                    user = authenticate(request, username=username, password=password)
 
             if user is not None:
                 login(request, user)
