@@ -15,7 +15,8 @@ SRC_DIR = BASE_DIR.parent / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-DEBUG = os.environ.get("DJANGO_DEBUG", "False").strip().lower() in {"1", "true", "yes"}
+IS_RENDER = "RENDER" in os.environ
+DEBUG = os.environ.get("DJANGO_DEBUG", "False" if IS_RENDER else "True").strip().lower() in {"1", "true", "yes"}
 # Prefer an explicitly configured secret. For the free demo, create a private
 # key file in the app directory when the environment variable is absent. The
 # file is not committed to Git and is retained within this deployed instance.
@@ -32,14 +33,16 @@ if not SECRET_KEY:
         except OSError:
             pass
 
+default_hosts = "localhost,127.0.0.1,.onrender.com" if IS_RENDER else "*"
 ALLOWED_HOSTS = [
     host.strip()
-    for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    for host in os.environ.get("DJANGO_ALLOWED_HOSTS", default_hosts).split(",")
     if host.strip()
 ]
+default_csrf = "https://*.onrender.com" if IS_RENDER else ""
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
-    for origin in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
+    for origin in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", default_csrf).split(",")
     if origin.strip()
 ]
 
@@ -112,10 +115,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Render terminates TLS at its proxy; trust its forwarded scheme header.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = not DEBUG
-SESSION_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SECURE = not DEBUG
-SECURE_HSTS_SECONDS = 3600 if not DEBUG else 0
+SECURE_SSL_REDIRECT = (not DEBUG) and IS_RENDER
+SESSION_COOKIE_SECURE = (not DEBUG) and IS_RENDER
+CSRF_COOKIE_SECURE = (not DEBUG) and IS_RENDER
+SECURE_HSTS_SECONDS = 3600 if ((not DEBUG) and IS_RENDER) else 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"

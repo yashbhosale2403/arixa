@@ -1,6 +1,8 @@
 # Secrets - never commit real API keys
 .env
 *.env
+.django_secret_key
+*.secret_key
 
 # Generated forensic outputs and evidence
 *.db
@@ -9,6 +11,7 @@
 output/
 evidence/
 uploads/
+staticfiles/
 
 # Python clutter
 __pycache__/
