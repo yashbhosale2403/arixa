@@ -4,6 +4,7 @@ ARIXA Forensic Timeline Console - Django Edition.
 """
 
 import os
+import secrets
 import sys
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
@@ -15,11 +16,21 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 DEBUG = os.environ.get("DJANGO_DEBUG", "False").strip().lower() in {"1", "true", "yes"}
+# Prefer an explicitly configured secret. For the free demo, create a private
+# key file in the app directory when the environment variable is absent. The
+# file is not committed to Git and is retained within this deployed instance.
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
-    if not DEBUG:
-        raise ImproperlyConfigured("Set DJANGO_SECRET_KEY in the deployment environment.")
-    SECRET_KEY = "local-development-only-change-before-deploy"
+    secret_file = BASE_DIR / ".django_secret_key"
+    try:
+        SECRET_KEY = secret_file.read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        SECRET_KEY = secrets.token_urlsafe(64)
+        secret_file.write_text(SECRET_KEY, encoding="utf-8")
+        try:
+            secret_file.chmod(0o600)
+        except OSError:
+            pass
 
 ALLOWED_HOSTS = [
     host.strip()
