@@ -957,31 +957,134 @@ document.addEventListener("DOMContentLoaded", () => {
       eventsHtml = '<div style="font-size:0.8rem;color:var(--muted)">No matching timeline events.</div>';
     }
 
+    // Format First Seen and Last Seen timestamps for forensic clarity
+    function formatForensicTime(isoStr) {
+      if (!isoStr || isoStr === "-" || isoStr === "None") {
+        return { formattedDate: "-", formattedTime: "-", fullUtc: "-", rawIso: "-" };
+      }
+      try {
+        const d = new Date(isoStr);
+        if (isNaN(d.getTime())) {
+          const clean = isoStr.replace("T", " ").replace("Z", " UTC");
+          return { formattedDate: clean.split(" ")[0] || clean, formattedTime: clean, fullUtc: clean, rawIso: isoStr };
+        }
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const day = String(d.getUTCDate()).padStart(2, "0");
+        const month = months[d.getUTCMonth()];
+        const year = d.getUTCFullYear();
+        const hrs = String(d.getUTCHours()).padStart(2, "0");
+        const mins = String(d.getUTCMinutes()).padStart(2, "0");
+        const secs = String(d.getUTCSeconds()).padStart(2, "0");
+        return {
+          formattedDate: `${day} ${month} ${year}`,
+          formattedTime: `${hrs}:${mins}:${secs} UTC`,
+          fullUtc: `${day} ${month} ${year}, ${hrs}:${mins}:${secs} UTC`,
+          rawIso: isoStr
+        };
+      } catch (e) {
+        return { formattedDate: isoStr, formattedTime: "", fullUtc: isoStr, rawIso: isoStr };
+      }
+    }
+
+    function calculateSpan(startIso, endIso) {
+      if (!startIso || !endIso || startIso === "-" || endIso === "-") return null;
+      try {
+        const t1 = new Date(startIso).getTime();
+        const t2 = new Date(endIso).getTime();
+        if (isNaN(t1) || isNaN(t2)) return null;
+        const diffSec = Math.max(0, Math.round((t2 - t1) / 1000));
+        if (diffSec === 0) return "Single event (instantaneous)";
+        if (diffSec < 60) return `${diffSec}s active duration`;
+        const m = Math.floor(diffSec / 60);
+        const s = diffSec % 60;
+        if (m < 60) return `${m}m ${s}s active duration`;
+        const h = Math.floor(m / 60);
+        const remM = m % 60;
+        return `${h}h ${remM}m active duration`;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    const firstSeenInfo = formatForensicTime(data.first_seen);
+    const lastSeenInfo = formatForensicTime(data.last_seen);
+    const timeSpanText = calculateSpan(data.first_seen, data.last_seen);
+
     // Geo Card
     let geoHtml = "";
-    if (data.geo && (data.geo.country || data.geo.location)) {
+    if ((data.geo && (data.geo.country || data.geo.location)) || (data.first_seen && data.first_seen !== "-")) {
+      const geoObj = data.geo || {};
       geoHtml = `
-        <div class="time-origin-card" style="margin-top:12px">
+        <div class="time-origin-card" style="margin-top:12px;padding:12px 14px">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <span class="section" style="margin:0;color:var(--text);font-weight:700">Geographic & System Origin</span>
-            <span class="geo-badge">${data.geo.flag || "🌐"} ${escapeHtml(data.geo.country || "Global")}</span>
+            <span class="geo-badge">${geoObj.flag || "🌐"} ${escapeHtml(geoObj.country || "Global Host")}</span>
           </div>
           <div class="geo-meta-row" style="margin-top:8px">
             <div class="geo-meta-item">
               <div class="geo-meta-label">Location</div>
-              <div class="geo-meta-val">${data.geo.flag || "🌐"} ${escapeHtml(data.geo.location || data.geo.country || "Unknown")}</div>
+              <div class="geo-meta-val">${geoObj.flag || "🌐"} ${escapeHtml(geoObj.location || geoObj.country || "Unknown")}</div>
             </div>
             <div class="geo-meta-item">
               <div class="geo-meta-label">Timezone</div>
-              <div class="geo-meta-val">${escapeHtml(data.geo.timezone || "UTC")}</div>
-            </div>
-            <div class="geo-meta-item">
-              <div class="geo-meta-label">Activity Window</div>
-              <div class="geo-meta-val" style="font-size:0.75rem">${escapeHtml(data.first_seen)} &rarr; ${escapeHtml(data.last_seen)}</div>
+              <div class="geo-meta-val">${escapeHtml(geoObj.timezone || "UTC")}</div>
             </div>
             <div class="geo-meta-item">
               <div class="geo-meta-label">Correlated Events</div>
-              <div class="geo-meta-val" style="font-weight:700;color:var(--accent)">${data.events_count}</div>
+              <div class="geo-meta-val" style="font-weight:700;color:var(--accent)">${data.events_count || 1} event(s)</div>
+            </div>
+            <div class="geo-meta-item">
+              <div class="geo-meta-label">Active Time Span</div>
+              <div class="geo-meta-val" style="font-weight:700;color:#10B981">${timeSpanText || "Single Event"}</div>
+            </div>
+          </div>
+
+          <!-- Dedicated Full-Width Forensic Activity Window with Clear Labels -->
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div class="geo-meta-label" style="font-weight:700;color:var(--accent);display:flex;align-items:center;gap:5px;font-size:0.7rem">
+                <span>⏱️</span> FORENSIC ACTIVITY WINDOW (UTC)
+              </div>
+              ${timeSpanText ? `<span style="font-size:0.68rem;font-weight:600;padding:2px 7px;background:rgba(16,185,129,0.12);color:#10B981;border-radius:4px;border:1px solid rgba(16,185,129,0.3)">${timeSpanText}</span>` : ""}
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <!-- First Seen Box -->
+              <div style="background:var(--bg);padding:8px 10px;border-radius:6px;border:1px solid var(--border)">
+                <div style="font-size:0.67rem;color:var(--muted);text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:4px">
+                  <span style="color:#10B981">&#9654;</span> FIRST SEEN (ATTACK START)
+                </div>
+                <div class="mono" style="font-size:0.82rem;font-weight:700;color:var(--text);margin-top:4px">
+                  ${firstSeenInfo.formattedTime}
+                </div>
+                <div style="font-size:0.69rem;color:var(--muted);margin-top:2px">
+                  ${firstSeenInfo.formattedDate}
+                </div>
+                <div class="mono" style="font-size:0.64rem;color:var(--faint);margin-top:3px;word-break:break-all">
+                  ${escapeHtml(firstSeenInfo.rawIso)}
+                </div>
+              </div>
+
+              <!-- Last Seen Box -->
+              <div style="background:var(--bg);padding:8px 10px;border-radius:6px;border:1px solid var(--border)">
+                <div style="font-size:0.67rem;color:var(--muted);text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:4px">
+                  <span style="color:#EF4444">&#9632;</span> LAST SEEN (LATEST ACTIVITY)
+                </div>
+                <div class="mono" style="font-size:0.82rem;font-weight:700;color:var(--text);margin-top:4px">
+                  ${lastSeenInfo.formattedTime}
+                </div>
+                <div style="font-size:0.69rem;color:var(--muted);margin-top:2px">
+                  ${lastSeenInfo.formattedDate}
+                </div>
+                <div class="mono" style="font-size:0.64rem;color:var(--faint);margin-top:3px;word-break:break-all">
+                  ${escapeHtml(lastSeenInfo.rawIso)}
+                </div>
+              </div>
+            </div>
+
+            <!-- Explanatory Forensic Caption -->
+            <div style="margin-top:8px;font-size:0.71rem;color:var(--faint);line-height:1.4;background:rgba(255,255,255,0.02);padding:6px 8px;border-radius:4px">
+              <span style="color:var(--text);font-weight:600">First Seen:</span> Earliest attack packet logged &bull; <span style="color:var(--text);font-weight:600">Last Seen:</span> Most recent action from this node.
             </div>
           </div>
         </div>
