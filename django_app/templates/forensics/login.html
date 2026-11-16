@@ -9,7 +9,62 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* Theme synchronizer matching app.js */
+    /* Zero-scroll single page layout */
+    html, body {
+      height: 100vh;
+      max-height: 100vh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      box-sizing: border-box;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .login-wrapper {
+      height: 100vh;
+      max-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 12px 24px 10px;
+      box-sizing: border-box;
+      max-width: 780px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+
+    .login-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .login-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 4px 0;
+      min-height: 0;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 440px;
+      padding: 16px 20px;
+      border-radius: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      box-sizing: border-box;
+    }
+
     .preset-chip:hover {
       border-color: var(--accent) !important;
       background: rgba(59, 130, 246, 0.08) !important;
@@ -19,61 +74,76 @@
       border-color: var(--accent) !important;
       background: rgba(59, 130, 246, 0.12) !important;
     }
+
+    .login-footer {
+      text-align: center;
+      padding-top: 6px;
+      font-size: 0.72rem;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
 
-<div class="hero-page-wrapper">
+<div class="login-wrapper">
   <!-- Top Header Matching ARIXA Main Layout -->
-  <header class="hero-header">
+  <header class="login-header">
     <div class="brand">
       <div class="logo">AR</div>
       <div>
-        <div class="title">ARIXA Forensic Timeline</div>
-        <div class="subtitle">Digital Forensics &amp; Incident Response &middot; AIORI PS-013</div>
+        <div class="title" style="font-size:1.15rem">ARIXA Forensic Timeline</div>
+        <div class="subtitle" style="font-size:0.75rem">Digital Forensics &amp; Incident Response &middot; AIORI PS-013</div>
       </div>
     </div>
     <div>
-      <button id="theme-toggle" class="btn btn-secondary" style="font-size:0.8rem">
+      <button id="theme-toggle" class="btn btn-secondary" style="font-size:0.78rem;padding:5px 10px">
         &#9728;&#65039; Light mode
       </button>
     </div>
   </header>
 
-  <!-- Hero Center Content -->
-  <div class="hero-main-content">
-    <!-- Centered Hero Intro -->
-    <div class="hero-intro">
-      <div class="hero-badge">Incident Response Console &middot; Access Control</div>
-      <h1 class="hero-title" style="font-size:1.75rem;margin-bottom:8px">Investigator Authentication</h1>
-      <p class="hero-desc" style="max-width:540px;margin:0 auto 14px">
-        Sign in to reconstruct multi-source incident timelines, verify cryptographic evidence custody, and access automated MITRE ATT&amp;CK correlation.
-      </p>
-      <div class="hero-feature-pills">
-        <span class="chip ok">&#10004; Level 3 Access Control</span>
-        <span class="chip">&#128337; Automatic UTC Alignment</span>
-        <span class="chip ai">&#10022; SHA-256 Custody Audit Trail</span>
+  <!-- Centered Content in Single Viewport -->
+  <main class="login-main">
+    <!-- Compact Intro -->
+    <div style="text-align:center;margin-bottom:8px">
+      <div class="hero-badge" style="margin-bottom:3px;padding:2px 10px;font-size:0.67rem;letter-spacing:0.04em">
+        Incident Response Console &middot; Access Control
+      </div>
+      <h1 style="font-size:1.32rem;font-weight:800;margin:2px 0 3px;color:var(--text);letter-spacing:-0.02em">
+        Investigator Authentication
+      </h1>
+      <div style="font-size:0.74rem;color:var(--muted);max-width:500px;margin:0 auto 5px;line-height:1.35">
+        Sign in to reconstruct multi-source timelines, verify cryptographic custody, and correlate MITRE ATT&amp;CK alerts.
+      </div>
+      <div class="hero-feature-pills" style="gap:6px">
+        <span class="chip ok" style="padding:2px 8px;font-size:0.68rem">&#10004; Level 3 Access Control</span>
+        <span class="chip" style="padding:2px 8px;font-size:0.68rem">&#128337; Automatic UTC Alignment</span>
+        <span class="chip ai" style="padding:2px 8px;font-size:0.68rem">&#10022; SHA-256 Custody Trail</span>
       </div>
     </div>
 
-    <!-- Centered Authentication Card (Matches Hero Upload Card) -->
-    <div class="card hero-upload-card" style="max-width:440px;margin:20px auto 0;box-shadow:0 10px 30px rgba(0,0,0,0.1)">
-      <div style="font-weight:700;font-size:1.12rem;margin-bottom:4px;color:var(--text)">
-        Sign In to Investigation Console
+    <!-- Compact Authentication Card -->
+    <div class="login-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+        <div style="font-weight:700;font-size:1.02rem;color:var(--text)">
+          Sign In to Investigation Console
+        </div>
+        <span style="font-size:0.68rem;color:var(--muted);font-family:Consolas,monospace">AIORI PS-013</span>
       </div>
-      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:18px">
-        Enter credentials or use the 1-click evaluator login below:
+      <div style="font-size:0.72rem;color:var(--muted);margin-bottom:10px">
+        Enter credentials or select a 1-click evaluator profile:
       </div>
 
       {% if error %}
-        <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#EF4444;padding:10px 14px;border-radius:8px;font-size:0.82rem;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+        <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#EF4444;padding:6px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px">
           <span>&#9888;&#65039;</span>
           <span>{{ error }}</span>
         </div>
       {% endif %}
 
       {% if logged_out %}
-        <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);color:#10B981;padding:10px 14px;border-radius:8px;font-size:0.82rem;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+        <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);color:#10B981;padding:6px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px">
           <span>&#10004;</span>
           <span>Forensic session securely terminated. Chain of custody signed.</span>
         </div>
@@ -84,72 +154,72 @@
         <input type="hidden" name="next" value="{{ next_url|default:'/' }}">
 
         <!-- Investigator ID Input -->
-        <div style="margin-bottom:14px">
-          <label class="section" style="display:block;margin-bottom:5px;font-size:0.75rem">Investigator ID / Username</label>
-          <div style="display:flex;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden">
-            <span style="padding:10px 14px;color:var(--muted);background:var(--surface2);border-right:1px solid var(--border);font-size:0.85rem">👤</span>
-            <input type="text" name="username" id="login-username" class="input" value="admin" style="border:none;background:transparent;padding:10px 12px;font-size:0.88rem;width:100%;box-shadow:none;outline:none" placeholder="admin" required autofocus autocomplete="username">
+        <div style="margin-bottom:8px">
+          <label class="section" style="display:block;margin-bottom:3px;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.04em">Investigator ID / Username</label>
+          <div style="display:flex;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:6px;overflow:hidden">
+            <span style="padding:6px 10px;color:var(--muted);background:var(--surface2);border-right:1px solid var(--border);font-size:0.8rem">👤</span>
+            <input type="text" name="username" id="login-username" class="input" value="admin" style="border:none;background:transparent;padding:6px 10px;font-size:0.84rem;width:100%;box-shadow:none;outline:none;height:32px" placeholder="admin" required autofocus autocomplete="username">
           </div>
         </div>
 
         <!-- Access Key Input -->
-        <div style="margin-bottom:14px">
-          <label class="section" style="display:block;margin-bottom:5px;font-size:0.75rem">Access Key / Passphrase</label>
-          <div style="display:flex;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden">
-            <span style="padding:10px 14px;color:var(--muted);background:var(--surface2);border-right:1px solid var(--border);font-size:0.85rem">🔑</span>
-            <input type="password" name="password" id="login-password" class="input" value="admin" style="border:none;background:transparent;padding:10px 12px;font-size:0.88rem;width:100%;box-shadow:none;outline:none" placeholder="admin" required autocomplete="current-password">
-            <button type="button" id="btn-toggle-pwd" style="background:none;border:none;padding:10px 14px;cursor:pointer;color:var(--muted);font-size:0.95rem" title="Show/Hide Password">&#128065;</button>
+        <div style="margin-bottom:8px">
+          <label class="section" style="display:block;margin-bottom:3px;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.04em">Access Key / Passphrase</label>
+          <div style="display:flex;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:6px;overflow:hidden">
+            <span style="padding:6px 10px;color:var(--muted);background:var(--surface2);border-right:1px solid var(--border);font-size:0.8rem">🔑</span>
+            <input type="password" name="password" id="login-password" class="input" value="admin" style="border:none;background:transparent;padding:6px 10px;font-size:0.84rem;width:100%;box-shadow:none;outline:none;height:32px" placeholder="admin" required autocomplete="current-password">
+            <button type="button" id="btn-toggle-pwd" style="background:none;border:none;padding:6px 10px;cursor:pointer;color:var(--muted);font-size:0.85rem" title="Show/Hide Password">&#128065;</button>
           </div>
         </div>
 
         <!-- Options row -->
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;font-size:0.75rem;color:var(--muted)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:0.72rem;color:var(--muted)">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
             <input type="checkbox" name="audit_log" checked style="accent-color:var(--accent)">
             <span>Sign into Chain of Custody</span>
           </label>
-          <span style="font-family:Consolas,monospace;font-size:0.7rem;color:var(--faint)">ISO/IEC 27037</span>
+          <span style="font-family:Consolas,monospace;font-size:0.68rem;color:var(--faint)">ISO/IEC 27037</span>
         </div>
 
         <!-- Submit Button -->
-        <button type="submit" class="btn btn-primary btn-full" id="btn-login-submit" style="padding:12px;font-size:0.92rem;font-weight:700">
+        <button type="submit" class="btn btn-primary btn-full" id="btn-login-submit" style="padding:9px;font-size:0.88rem;font-weight:700;border-radius:6px">
           Authorize &amp; Enter Console &rarr;
         </button>
       </form>
 
       <!-- 1-Click Quick Login Presets for Hackathon Judges -->
-      <div style="margin-top:20px;padding-top:16px;border-top:1px dashed var(--border)">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <span class="section" style="margin:0;font-size:0.74rem">&#9889; 1-Click Quick Logins (Evaluator Demo):</span>
-          <span style="font-size:0.68rem;color:var(--accent);font-weight:600">Default: admin / admin</span>
+      <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span class="section" style="margin:0;font-size:0.68rem">&#9889; 1-Click Quick Logins (Evaluator Demo):</span>
+          <span style="font-size:0.66rem;color:var(--accent);font-weight:600">Default: admin / admin</span>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div class="preset-chip active" id="chip-admin" onclick="fillCredentials('admin', 'admin', this)" style="background:var(--bg);border:1.5px solid var(--accent);border-radius:8px;padding:8px 10px;cursor:pointer;transition:all 0.2s">
-            <div style="font-size:0.78rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div class="preset-chip active" id="chip-admin" onclick="fillCredentials('admin', 'admin', this)" style="background:var(--bg);border:1.5px solid var(--accent);border-radius:6px;padding:6px 8px;cursor:pointer;transition:all 0.2s">
+            <div style="font-size:0.74rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:4px">
               <span>&#128737;&#65039;</span> SecOps Admin
             </div>
-            <div style="font-family:Consolas,monospace;font-size:0.7rem;color:var(--accent);margin-top:3px;font-weight:700">
+            <div style="font-family:Consolas,monospace;font-size:0.68rem;color:var(--accent);margin-top:2px;font-weight:700">
               admin / admin
             </div>
           </div>
 
-          <div class="preset-chip" id="chip-analyst" onclick="fillCredentials('analyst', 'admin', this)" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;cursor:pointer;transition:all 0.2s">
-            <div style="font-size:0.78rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px">
+          <div class="preset-chip" id="chip-analyst" onclick="fillCredentials('analyst', 'admin', this)" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;cursor:pointer;transition:all 0.2s">
+            <div style="font-size:0.74rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:4px">
               <span>&#128100;</span> Lead Analyst
             </div>
-            <div style="font-family:Consolas,monospace;font-size:0.7rem;color:var(--muted);margin-top:3px">
+            <div style="font-family:Consolas,monospace;font-size:0.68rem;color:var(--muted);margin-top:2px">
               analyst / admin
             </div>
           </div>
         </div>
       </div>
     </div>
+  </main>
 
-    <!-- Page Footer Matching index.html -->
-    <div style="text-align:center;margin-top:32px;font-size:0.75rem;color:var(--muted)">
-      ARIXA Forensic Timeline &middot; Built for AIORI-3 Hackathon (Problem Statement PS-013)
-    </div>
-  </div>
+  <!-- Page Footer -->
+  <footer class="login-footer">
+    ARIXA Forensic Timeline &middot; Built for AIORI-3 Hackathon (Problem Statement PS-013)
+  </footer>
 </div>
 
 <script>
