@@ -45,26 +45,26 @@
   <!-- Hero Center Content: Single Clean Auth/Upload Card -->
   <main class="hero-main-content">
     <div class="hero-upload-card">
-      <div style="text-align:center;margin-bottom:14px">
-        <h1 style="font-size:1.25rem;font-weight:800;color:var(--text);letter-spacing:-0.02em;margin:0 0 3px">
+      <div style="text-align:center;margin-bottom:16px">
+        <h1 style="font-size:1.3rem;font-weight:800;color:var(--text);letter-spacing:-0.02em;margin:0 0 4px">
           Upload Evidence &amp; Reconstruct Timeline
         </h1>
-        <p style="font-size:0.78rem;color:var(--muted);margin:0">
-          Drop server log files or choose a 1-click evaluator scenario below
+        <p style="font-size:0.8rem;color:var(--muted);margin:0">
+          Drop server log files to begin investigation
         </p>
       </div>
 
       <form id="upload-form" class="upload-form" enctype="multipart/form-data">
         <div class="dropzone hero-dropzone" id="upload-dropzone">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent);margin-bottom:4px">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent);margin-bottom:6px">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="17 8 12 3 7 8"/>
             <line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
-          <div class="dropzone-text" style="font-size:0.84rem;font-weight:600;color:var(--text)">
+          <div class="dropzone-text" style="font-size:0.88rem;font-weight:600;color:var(--text)">
             Drag &amp; drop log files here or click to browse
           </div>
-          <div style="font-size:0.7rem;color:var(--muted);margin-top:2px">
+          <div style="font-size:0.72rem;color:var(--muted);margin-top:3px">
             Supports Linux auth.log, Apache/Nginx access.log, syslog, .log, .txt
           </div>
           <input type="file" id="file-input" name="files" multiple style="display:none">
@@ -74,79 +74,25 @@
         <div id="selected-files-list" style="margin-top:8px;display:none;flex-direction:column;gap:4px"></div>
 
         <!-- Configuration Grid -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
           <div>
-            <label class="section" style="display:block;margin-bottom:3px;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em">Server Time Zone</label>
-            <select name="timezone" class="select" id="upload-tz" style="height:34px;padding:6px 10px;font-size:0.82rem">
+            <label class="section" style="display:block;margin-bottom:4px;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em">Server Time Zone</label>
+            <select name="timezone" class="select" id="upload-tz" style="height:36px;padding:6px 10px;font-size:0.84rem">
               {% for tz in timezones %}
                 <option value="{{ tz }}" {% if tz == selected_tz %}selected{% endif %}>{{ tz }}</option>
               {% endfor %}
             </select>
           </div>
           <div>
-            <label class="section" style="display:block;margin-bottom:3px;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em">Clock Skew (seconds)</label>
-            <input type="number" name="skew_seconds" class="input" value="0" step="1" style="height:34px;padding:6px 10px;font-size:0.82rem" placeholder="0">
+            <label class="section" style="display:block;margin-bottom:4px;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em">Clock Skew (seconds)</label>
+            <input type="number" name="skew_seconds" class="input" value="0" step="1" style="height:36px;padding:6px 10px;font-size:0.84rem" placeholder="0">
           </div>
         </div>
 
-        <button type="submit" id="btn-analyse" class="btn btn-primary btn-full" style="margin-top:12px;padding:9px;font-size:0.88rem;font-weight:700;border-radius:6px">
+        <button type="submit" id="btn-analyse" class="btn btn-primary btn-full" style="margin-top:16px;padding:10px;font-size:0.9rem;font-weight:700;border-radius:8px">
           &#9889; Ingest &amp; Reconstruct Incident Timeline
         </button>
       </form>
-
-      <!-- 1-Click Demo Scenarios (All 5 preserved!) -->
-      <div style="display:flex;align-items:center;margin:14px 0 10px;color:var(--faint);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em">
-        <span style="flex:1;height:1px;background:var(--border)"></span>
-        <span style="padding:0 8px">&#9889; 1-Click Ready Scenarios</span>
-        <span style="flex:1;height:1px;background:var(--border)"></span>
-      </div>
-
-      <div class="hero-scenarios-compact">
-        <!-- Scenario All: Full Global Attack -->
-        <div class="hero-scenario-btn" style="grid-column: span 2;" onclick="loadScenario('all')" title="Full Global Enterprise Attack Chain: India, UK, USA">
-          <div style="display:flex;align-items:center;gap:6px">
-            <span>&#127760;</span>
-            <span>Full Global Attack Chain (India &middot; UK &middot; USA)</span>
-          </div>
-          <span class="tag sev-critical" style="background:rgba(239,68,68,0.15);color:#EF4444;border:1px solid rgba(239,68,68,0.3)">16 ALERTS</span>
-        </div>
-
-        <!-- Scenario 1: SSH Brute Force -->
-        <div class="hero-scenario-btn" onclick="loadScenario('ssh')" title="Mumbai bastion server attacked: 15 failed SSH attempts, deploy password cracked, root backdoor">
-          <div style="display:flex;align-items:center;gap:6px">
-            <span>&#127470;&#127475;</span>
-            <span>01. SSH Brute Force (Mumbai)</span>
-          </div>
-          <span class="tag sev-critical" style="background:rgba(239,68,68,0.15);color:#EF4444;border:1px solid rgba(239,68,68,0.3)">CRITICAL</span>
-        </div>
-
-        <!-- Scenario 2: Web Scan & Web Shell -->
-        <div class="hero-scenario-btn" onclick="loadScenario('web')" title="Bengaluru web server: 404 scanning, SQL injection, and webshell execution">
-          <div style="display:flex;align-items:center;gap:6px">
-            <span>&#127470;&#127475;</span>
-            <span>02. Web Scan &amp; Shell (Bengaluru)</span>
-          </div>
-          <span class="tag sev-high" style="background:rgba(249,115,22,0.15);color:#F97316;border:1px solid rgba(249,115,22,0.3)">HIGH</span>
-        </div>
-
-        <!-- Scenario 3: Multi-Zone & Clock Skew -->
-        <div class="hero-scenario-btn" onclick="loadScenario('multi')" title="London web shell pivot to New York DB with 3-minute clock drift">
-          <div style="display:flex;align-items:center;gap:6px">
-            <span>&#127468;&#127463; &#127482;&#127480;</span>
-            <span>03. Multi-Zone (London + NY)</span>
-          </div>
-          <span class="tag" style="background:rgba(59,130,246,0.15);color:#60A5FA;border:1px solid rgba(59,130,246,0.3)">+180s DRIFT</span>
-        </div>
-
-        <!-- Scenario 5: Clean Logs Baseline -->
-        <div class="hero-scenario-btn" onclick="loadScenario('clean')" title="Clean everyday corporate traffic from Mumbai HQ (sysadmin SSH keys, uptime checks)">
-          <div style="display:flex;align-items:center;gap:6px">
-            <span>&#127470;&#127475;</span>
-            <span>08. Normal Traffic (Mumbai HQ)</span>
-          </div>
-          <span class="tag rule ok" style="background:rgba(16,185,129,0.15);color:#10B981;border:1px solid rgba(16,185,129,0.3)">0 ALERTS</span>
-        </div>
-      </div>
     </div>
   </main>
 
