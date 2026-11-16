@@ -4,10 +4,12 @@ import os
 import re
 import stat
 from datetime import datetime
+from functools import wraps
 from pathlib import Path
 
+from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
 
 import config
@@ -30,6 +32,68 @@ TIMEZONES = [
     "America/Los_Angeles", "Europe/London", "Europe/Berlin",
     "Asia/Singapore", "Asia/Tokyo", "Australia/Sydney"
 ]
+
+DEMO_ANALYSTS = {
+    "analyst": {
+        "password": "arixa2026",
+        "role": "Lead Incident Responder",
+        "clearance": "Level 3 (Full DFIR)",
+        "name": "Alex Chen, CISSP",
+        "icon": "👤",
+    },
+    "admin": {
+        "password": "admin123",
+        "role": "Forensics Administrator",
+        "clearance": "Level 4 (SecOps Lead)",
+        "name": "Sarah Miller, GCFA",
+        "icon": "🛡️",
+    },
+    "demo": {
+        "password": "demo",
+        "role": "Field Investigator",
+        "clearance": "Level 2 (Read/Verify)",
+        "name": "DFIR Evaluator",
+        "icon": "🔍",
+    },
+}
+
+
+def _ensure_demo_users():
+    try:
+        from django.contrib.auth.models import User
+        for uname, info in DEMO_ANALYSTS.items():
+            user = User.objects.filter(username=uname).first()
+            if not user:
+                user = User.objects.create_user(username=uname, password=info["password"])
+            else:
+                user.set_password(info["password"])
+            parts = info["name"].split()
+            user.first_name = parts[0]
+            user.last_name = " ".join(parts[1:])
+            if uname == "admin":
+                user.is_staff = True
+                user.is_superuser = True
+            user.save()
+    except Exception:
+        pass
+
+
+def _get_client_ip(request):
+    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+    if x_forwarded_for:
+        return x_forwarded_for.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR", "127.0.0.1")
+
+
+def analyst_required(view_func):
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not request.user.is_authenticated and not request.session.get("analyst_logged_in"):
+            if request.headers.get("x-requested-with") == "XMLHttpRequest" or request.path.startswith("/api/"):
+                return JsonResponse({"error": "Authentication required. Please log in to ARIXA console.", "redirect": "/login/"}, status=401)
+            return redirect(f"/login/?next={request.get_full_path()}")
+        return view_func(request, *args, **kwargs)
+    return _wrapped
 
 
 SEV_COLOR = {"CRITICAL": "#EF4444", "HIGH": "#F97316", "WARN": "#EAB308", "INFO": "#64748B"}
@@ -55,6 +119,16 @@ def _get_case_context(conn, request=None):
     selected_tz = "UTC"
     if request and hasattr(request, "session"):
         selected_tz = request.session.get("selected_tz") or "UTC"
+
+    analyst_username = "analyst"
+    analyst_name = "Alex Chen, CISSP"
+    analyst_role = "Lead Incident Responder"
+    analyst_clearance = "Level 3 (Full DFIR)"
+    if request and hasattr(request, "session"):
+        analyst_username = request.session.get("analyst_username") or (request.user.username if request.user.is_authenticated else "analyst")
+        analyst_name = request.session.get("analyst_name") or DEMO_ANALYSTS.get(analyst_username, {}).get("name", analyst_username)
+        analyst_role = request.session.get("analyst_role") or DEMO_ANALYSTS.get(analyst_username, {}).get("role", "Incident Responder")
+        analyst_clearance = request.session.get("analyst_clearance") or DEMO_ANALYSTS.get(analyst_username, {}).get("clearance", "Level 3")
 
     ai_enabled, ai_msg = ai_helper.status()
     kc = attack_map.kill_chain(detections)
@@ -144,10 +218,92 @@ def _get_case_context(conn, request=None):
         "utc_now": evidence.now_utc_iso(),
         "has_data": stats.get("events", 0) > 0,
         "selected_tz": selected_tz,
+        "analyst_username": analyst_username,
+        "analyst_name": analyst_name,
+        "analyst_role": analyst_role,
+        "analyst_clearance": analyst_clearance,
     }
 
 
+def login_view(request):
+    next_url = request.GET.get("next") or request.POST.get("next") or "/"
+    if request.user.is_authenticated or request.session.get("analyst_logged_in"):
+        return redirect(next_url)
+
+    error = None
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "").strip()
+
+        if not username or not password:
+            error = "Investigator ID and Access Key are both required."
+        else:
+            _ensure_demo_users()
+            user = authenticate(request, username=username, password=password)
+            if user is None and username in DEMO_ANALYSTS and DEMO_ANALYSTS[username]["password"] == password:
+                from django.contrib.auth.models import User
+                user = User.objects.filter(username=username).first()
+
+            if user is not None:
+                login(request, user)
+                analyst_info = DEMO_ANALYSTS.get(username, {
+                    "role": "Forensic Investigator",
+                    "clearance": "Level 3 (Standard DFIR)",
+                    "name": user.get_full_name() or username,
+                })
+                request.session["analyst_logged_in"] = True
+                request.session["analyst_username"] = username
+                request.session["analyst_name"] = analyst_info["name"]
+                request.session["analyst_role"] = analyst_info["role"]
+                request.session["analyst_clearance"] = analyst_info["clearance"]
+
+                # Log to Chain of Custody
+                client_ip = _get_client_ip(request)
+                evidence.log_custody(
+                    "ANALYST_AUTHENTICATED",
+                    {
+                        "username": username,
+                        "role": analyst_info["role"],
+                        "clearance": analyst_info["clearance"],
+                        "ip": client_ip,
+                        "status": "AUTHORIZED_SESSION_OPENED"
+                    }
+                )
+                return redirect(next_url)
+            else:
+                error = "Access denied: Invalid Investigator ID or Access Key."
+
+    logged_out = request.GET.get("logged_out") == "1"
+    context = {
+        "error": error,
+        "logged_out": logged_out,
+        "next_url": next_url,
+        "demo_analysts": DEMO_ANALYSTS,
+        "utc_now": evidence.now_utc_iso(),
+    }
+    return render(request, "forensics/login.html", context)
+
+
+def logout_view(request):
+    username = request.session.get("analyst_username") or (request.user.username if request.user.is_authenticated else "unknown")
+    if username != "unknown":
+        client_ip = _get_client_ip(request)
+        evidence.log_custody(
+            "ANALYST_LOGOUT",
+            {
+                "username": username,
+                "ip": client_ip,
+                "status": "SESSION_TERMINATED"
+            }
+        )
+    logout(request)
+    request.session.flush()
+    return redirect("/login/?logged_out=1")
+
+
 def index(request):
+    if not request.user.is_authenticated and not request.session.get("analyst_logged_in"):
+        return redirect(f"/login/?next={request.path}")
     conn = database.connect()
     context = _get_case_context(conn, request)
     conn.close()
@@ -380,6 +536,7 @@ def enrich_event_geo(e: dict) -> dict:
     return e
 
 
+@analyst_required
 def api_events(request):
     """Filtered events API with search, facet filters and activity bucket calculation."""
     conn = database.connect()
@@ -456,6 +613,7 @@ def api_events(request):
     })
 
 
+@analyst_required
 def api_event_detail(request, event_id):
     conn = database.connect()
     events = database.get_events_by_ids(conn, [event_id])
@@ -478,6 +636,7 @@ def api_event_detail(request, event_id):
     })
 
 
+@analyst_required
 def api_attack_graph(request):
     conn = database.connect()
     detections = database.get_detections(conn)
@@ -486,6 +645,7 @@ def api_attack_graph(request):
     return JsonResponse({"dot": dot})
 
 
+@analyst_required
 def api_attack_graph_data(request):
     """Returns nodes and edges structured for interactive canvas (vis-network) dragging and stretching."""
     conn = database.connect()
@@ -571,6 +731,7 @@ def api_attack_graph_data(request):
     return JsonResponse({"nodes": nodes, "edges": edges})
 
 
+@analyst_required
 def api_attack_graph_element(request):
     """Returns detailed forensic intelligence for any clicked node or edge in the threat actor graph."""
     node_id = request.GET.get("node_id", "").strip()
@@ -749,6 +910,7 @@ def api_attack_graph_element(request):
 
 
 @csrf_exempt
+@analyst_required
 def api_ingest(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
@@ -795,6 +957,7 @@ def api_ingest(request):
 
 
 @csrf_exempt
+@analyst_required
 def api_load_samples(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
@@ -806,6 +969,7 @@ def api_load_samples(request):
 
 
 @csrf_exempt
+@analyst_required
 def api_load_scenario(request, name):
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
@@ -878,6 +1042,7 @@ def _get_evidence_status_payload():
     }
 
 
+@analyst_required
 def api_verify(request):
     evidence.verify(log=True)
     payload = _get_evidence_status_payload()
@@ -888,6 +1053,7 @@ def api_verify(request):
 
 
 @csrf_exempt
+@analyst_required
 def api_tamper(request):
     """Live tamper demonstration: intentionally modifies one byte in an evidence copy."""
     if request.method != "POST":
@@ -946,6 +1112,7 @@ def api_tamper(request):
 
 
 @csrf_exempt
+@analyst_required
 def api_restore_evidence(request):
     """Restores pristine content to tampered evidence files and re-verifies."""
     if request.method != "POST":
@@ -962,6 +1129,7 @@ def api_restore_evidence(request):
 
 
 @csrf_exempt
+@analyst_required
 def api_reset(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
@@ -970,6 +1138,7 @@ def api_reset(request):
     return JsonResponse({"success": True, "result": result})
 
 
+@analyst_required
 def export_report(request, fmt):
     conn = database.connect()
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1029,6 +1198,7 @@ def export_report(request, fmt):
 
 
 @csrf_exempt
+@analyst_required
 def api_ai_narrative(request):
     try:
         conn = database.connect()
@@ -1050,6 +1220,7 @@ def api_ai_narrative(request):
 
 
 @csrf_exempt
+@analyst_required
 def api_ai_ask(request):
     question = request.GET.get("q") or request.POST.get("q", "")
     if not question:
@@ -1089,6 +1260,7 @@ def api_ai_ask(request):
 
 
 @csrf_exempt
+@analyst_required
 def api_ai_gap(request):
     try:
         conn = database.connect()

@@ -28,7 +28,14 @@
         <div class="subtitle">Digital Forensics &amp; Incident Response &middot; AIORI PS-013</div>
       </div>
     </div>
-    <div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <!-- Active Analyst Pill -->
+      <div class="analyst-badge" style="display:flex;align-items:center;gap:8px;padding:4px 12px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);border-radius:20px;font-size:0.75rem">
+        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10B981;box-shadow:0 0 6px #10B981"></span>
+        <span style="font-weight:600;color:var(--text)">{{ analyst_name|default:"Lead Analyst" }}</span>
+        <span style="color:var(--muted);font-size:0.7rem">[{{ analyst_role|default:"Investigator" }}]</span>
+        <a href="/logout/" class="btn-logout" title="Sign out of DFIR session" style="margin-left:6px;color:var(--muted);text-decoration:none;font-weight:600;font-size:0.72rem;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,0.06);transition:all 0.2s" onmouseover="this.style.color='#EF4444'" onmouseout="this.style.color='var(--muted)'">&#x23FB; Sign Out</a>
+      </div>
       <button id="theme-toggle" class="btn btn-secondary" style="font-size:0.8rem">
         &#9728;&#65039; Light mode
       </button>
@@ -313,6 +320,13 @@
       </div>
 
       <div class="chips">
+        <!-- Active Analyst Pill -->
+        <div class="analyst-badge" style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);border-radius:20px;font-size:0.75rem">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10B981;box-shadow:0 0 6px #10B981"></span>
+          <span style="font-weight:600;color:var(--text)">{{ analyst_name|default:"Lead Analyst" }}</span>
+          <a href="/logout/" class="btn-logout" title="Sign out of DFIR session" style="margin-left:4px;color:var(--muted);text-decoration:none;font-weight:600;font-size:0.7rem;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.06);transition:all 0.2s" onmouseover="this.style.color='#EF4444'" onmouseout="this.style.color='var(--muted)'">&#x23FB; Sign Out</a>
+        </div>
+
         {% if all_ok %}
           <span class="chip ok" id="chip-evidence" title="Chain of Custody verified: all evidence files match original SHA-256 hashes">&#10004; {{ checks|length }} evidence files intact</span>
         {% else %}
@@ -796,13 +810,17 @@
           </thead>
           <tbody id="custody-log-tbody">
             {% for c in custody %}
-              <tr style="{% if c.action == 'TAMPER_ALERT' %}background:rgba(239,68,68,0.08){% elif c.action == 'EVIDENCE_RESTORED' %}background:rgba(16,185,129,0.08){% endif %}">
+              <tr style="{% if c.action == 'TAMPER_ALERT' %}background:rgba(239,68,68,0.08){% elif c.action == 'EVIDENCE_RESTORED' %}background:rgba(16,185,129,0.08){% elif c.action == 'ANALYST_AUTHENTICATED' %}background:rgba(59,130,246,0.08){% endif %}">
                 <td class="cell-time">{{ c.time }}</td>
                 <td style="font-weight:600">
                   {% if c.action == 'TAMPER_ALERT' %}
                     <span style="color:#EF4444;font-weight:800;background:rgba(239,68,68,0.15);padding:2px 8px;border-radius:4px;border:1px solid rgba(239,68,68,0.3)">&#128680; TAMPER_ALERT</span>
                   {% elif c.action == 'EVIDENCE_RESTORED' %}
                     <span style="color:#10B981;font-weight:800;background:rgba(16,185,129,0.15);padding:2px 8px;border-radius:4px;border:1px solid rgba(16,185,129,0.3)">&#128737;&#65039; EVIDENCE_RESTORED</span>
+                  {% elif c.action == 'ANALYST_AUTHENTICATED' %}
+                    <span style="color:#60A5FA;font-weight:700;background:rgba(59,130,246,0.15);padding:2px 8px;border-radius:4px;border:1px solid rgba(59,130,246,0.3)">&#128100; ANALYST_LOGIN</span>
+                  {% elif c.action == 'ANALYST_LOGOUT' %}
+                    <span style="color:#94A3B8;font-weight:700;background:rgba(148,163,184,0.15);padding:2px 8px;border-radius:4px;border:1px solid rgba(148,163,184,0.3)">&#128274; ANALYST_LOGOUT</span>
                   {% elif c.action == 'TAMPER_SIMULATED' %}
                     <span style="color:#F59E0B;font-weight:700">&#9888;&#65039; TAMPER_SIMULATED</span>
                   {% elif c.action == 'EVIDENCE_VERIFIED' %}

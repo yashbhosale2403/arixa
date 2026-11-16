@@ -2,6 +2,8 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
     path('', views.index, name='index'),
     path('api/events/', views.api_events, name='api_events'),
     path('api/event/<int:event_id>/', views.api_event_detail, name='api_event_detail'),

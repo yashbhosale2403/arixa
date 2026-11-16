@@ -3,6 +3,16 @@
  */
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Global 401 Unauthorized Interceptor for DFIR Session Safety
+  const originalFetch = window.fetch;
+  window.fetch = async function(...args) {
+    const res = await originalFetch.apply(this, args);
+    if (res.status === 401) {
+      window.location.href = "/login/?session_expired=1";
+    }
+    return res;
+  };
+
   // Theme Management
   const themeToggle = document.getElementById("theme-toggle");
   const savedTheme = localStorage.getItem("arixa_theme") || "dark";
