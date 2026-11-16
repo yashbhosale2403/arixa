@@ -41,7 +41,7 @@ GRAPH_PALETTE = {
 }
 
 
-def _get_case_context(conn):
+def _get_case_context(conn, request=None):
     stats = database.stats(conn)
     detections = database.get_detections(conn)
     checks = evidence.verify()
@@ -51,6 +51,10 @@ def _get_case_context(conn):
     all_ips = database.distinct_values(conn, "source_ip")
     all_users = database.distinct_values(conn, "username")
     all_sources = database.distinct_values(conn, "source_file")
+
+    selected_tz = "UTC"
+    if request and hasattr(request, "session"):
+        selected_tz = request.session.get("selected_tz") or "UTC"
 
     ai_enabled, ai_msg = ai_helper.status()
     kc = attack_map.kill_chain(detections)
@@ -139,12 +143,13 @@ def _get_case_context(conn):
         "timing_info": timing_info,
         "utc_now": evidence.now_utc_iso(),
         "has_data": stats.get("events", 0) > 0,
+        "selected_tz": selected_tz,
     }
 
 
 def index(request):
     conn = database.connect()
-    context = _get_case_context(conn)
+    context = _get_case_context(conn, request)
     conn.close()
     return render(request, "forensics/index.html", context)
 
@@ -749,16 +754,25 @@ def api_ingest(request):
         return JsonResponse({"error": "POST required"}, status=405)
 
     files = request.FILES.getlist("files")
-    if not files:
-        return JsonResponse({"error": "No files provided"}, status=400)
+    tz = request.POST.get("timezone", "UTC")
+    request.session["selected_tz"] = tz
 
-    tz = request.POST.get("timezone", config.DEFAULT_TIMEZONE)
     try:
         skew = float(request.POST.get("skew_seconds", 0))
     except ValueError:
         skew = 0.0
 
     overrides = {"timezone": tz, "skew_seconds": skew}
+
+    if not files:
+        manifest = evidence.load_manifest()
+        if manifest:
+            existing_copies = [evidence.evidence_path(m) for m in manifest if evidence.evidence_path(m).exists()]
+            if existing_copies:
+                pipeline.reset_outputs()
+                stats = pipeline.ingest(existing_copies, overrides=overrides)
+                return JsonResponse({"success": True, "stats": stats, "reanalyzed": True})
+        return JsonResponse({"error": "No files provided"}, status=400)
     saved_paths = []
     config.UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 

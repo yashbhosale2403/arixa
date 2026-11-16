@@ -1656,11 +1656,36 @@ document.addEventListener("DOMContentLoaded", () => {
     renderSelectedFiles();
   };
 
+  // Timezone Preference Persistence & Auto-Sync
+  const tzSelects = document.querySelectorAll("#upload-tz, select[name='timezone']");
+  const savedTz = localStorage.getItem("arixa_server_timezone") || "UTC";
+  tzSelects.forEach(sel => {
+    if (savedTz && Array.from(sel.options).some(o => o.value === savedTz)) {
+      sel.value = savedTz;
+    }
+    sel.addEventListener("change", () => {
+      localStorage.setItem("arixa_server_timezone", sel.value);
+      tzSelects.forEach(other => { if (other !== sel) other.value = sel.value; });
+    });
+  });
+
   if (uploadForm) {
     uploadForm.addEventListener("submit", e => {
       e.preventDefault();
+      const uploadTz = document.getElementById("upload-tz");
+      if (uploadTz) {
+        localStorage.setItem("arixa_server_timezone", uploadTz.value);
+      }
+
       if (!fileInput.files || fileInput.files.length === 0) {
-        alert("Please select at least one log file.");
+        const hasEvidence = document.querySelector("#kpi-evidence-val");
+        if (hasEvidence && parseInt(hasEvidence.textContent || "0") > 0) {
+          const formData = new FormData(uploadForm);
+          const promise = fetch("/api/ingest/", { method: "POST", body: formData });
+          runForensicAnalysisSequence(promise, "reanalyze");
+          return;
+        }
+        alert("Please select at least one log file or pick a quick sample scenario.");
         return;
       }
 

@@ -86,7 +86,7 @@
             <label class="section" style="display:block;margin-bottom:4px">Server Time Zone</label>
             <select name="timezone" class="select" id="upload-tz">
               {% for tz in timezones %}
-                <option value="{{ tz }}" {% if tz == "Asia/Kolkata" %}selected{% endif %}>{{ tz }}</option>
+                <option value="{{ tz }}" {% if tz == selected_tz %}selected{% endif %}>{{ tz }}</option>
               {% endfor %}
             </select>
           </div>
@@ -195,7 +195,7 @@
           <label class="section" style="display:block;margin-bottom:4px">Server Time Zone</label>
           <select name="timezone" class="select" id="upload-tz">
             {% for tz in timezones %}
-              <option value="{{ tz }}" {% if tz == "Asia/Kolkata" %}selected{% endif %}>{{ tz }}</option>
+              <option value="{{ tz }}" {% if tz == selected_tz %}selected{% endif %}>{{ tz }}</option>
             {% endfor %}
           </select>
         </div>
